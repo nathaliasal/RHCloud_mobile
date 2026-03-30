@@ -25,15 +25,6 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
 ## Estructura del proyecto
 
@@ -95,3 +86,87 @@ Core
 | `react` | 19.1.0 | `UI` |
 | `react-native` | 0.81.5 | `Runtime móvil` |
 | `typescript` | ~5.9.2 | `Tipado estático` |
+
+
+
+Navegación
+
+| Libreria | Version | Uso |
+|---|---|---|
+| `expo-router` | ~6.0.23 | `Ruteo basado en archivos` |
+| `@react-navigation/native` | ^7.1.8 | `Navegación base` |
+| `@react-navigation/bottom-tabs` | ^7.4.0 | `Tab bar` |
+
+
+Estado y datos
+
+| Libreria | Version | Uso |
+|---|---|---|
+| `zustand` | ^5.0.12 | `Estado global del usuario` |
+| `@tanstack/react-query` | ^5.95.2 | `Cache y sincronización de datos del servidor` |
+| `axios` | ^1.14.0 | `Cliente HTTP con interceptores` |
+
+
+Almacenamiento
+
+| Libreria | Version | Uso |
+|---|---|---|
+| `expo-secure-store` | ~15.0.8 | `Tokens JWT (Keychain/Keystore cifrado)` |
+| `@react-native-async-storage/async-storage` | 2.2.0 | `Persistencia de estado no sensible` |
+
+
+
+Animaciones y gestos
+
+| Libreria | Version | Uso |
+|---|---|---|
+| `react-native-reanimated` | ~4.1.1 | `Animaciones en hilo de UI` |
+| `react-native-gesture-handler` | ~2.28.0 | `Manejo de gestos` |
+| `react-native-worklets` | 0.5.1 | `Operaciones de alto rendimiento` |
+
+
+
+UI y utilidades
+
+| Libreria | Version | Uso |
+|---|---|---|
+| `react-native-calendars` | ^1.1314.0 | `Selector de fechas / rangos (vacaciones)` |
+| `date-fns` | ^4.1.0 | `Formateo y cálculo de fechas` |
+| `@expo/vector-icons` | ^15.0.3 | `Íconos Material e Ionicons` |
+| `expo-symbols` | ~1.0.8 | `SF Symbols (iOS)` |
+| `react-native-safe-area-context` | ~5.6.0 | `Áreas seguras de pantalla` |
+| `expo-haptics` | ~15.0.8 | `Feedback háptico` |
+
+
+
+## Paleta de colores
+
+El proyecto usa un tema dark-first con acento cyan.
+
+| Token | Hex | Uso |
+|---|---|---|
+| `bg` | #07101F | `Fondo principal de todas las pantallas` |
+| `accent` | #00E5CC | `Color principal — botones, labels, íconos activos` |
+| `accentGlow` | rgba(0,229,204,0.15) | `Fondo de tarjetas y logo mark` |
+| `accentBorder` | rgba(0,229,204,0.35) | `Bordes con acento` |
+| `accentShadow` | rgba(0,229,204,0.45) | `Sombra de botón principal` |
+| `text` | #EDF4FF | `Texto principal` |
+| `muted` | rgba(237,244,255,0.50) | `Texto secundario / placeholders` |
+| `mutedLight` | rgba(237,244,255,0.12) | `Divisores y fondos sutiles` |
+| `inputBg` | rgba(255,255,255,0.055) | `Fondo de campos de texto` |
+| `inputBorder` | rgba(255,255,255,0.09) | `Borde de campos en reposo` |
+| `inputFocus` | rgba(0,229,204,0.35) | `Borde de campos al enfocar` |
+| `orb1` | rgba(0,180,216,0.16) | `Orbe decorativo azul (arriba-derecha)` |
+| `orb2` | rgba(100,30,200,0.13) | `Orbe decorativo morado (abajo-izquierda)` |
+| `error` | #FF6B6B | `Mensajes de error` |
+| `success` | #4ADE80 | `Mensajes de éxito` |
+
+
+
+Fuentes iOS y Android / Web
+
+| Heavy | Bold | DemiBold | Regular |
+|---|---|---|---|
+| AvenirNext-Heavy | AvenirNext-Bold | AvenirNext-DemiBold | AvenirNext-Regular |
+| sans-serif-condensed | sans-serif-medium | sans-serif-medium | sans-serif |
+
