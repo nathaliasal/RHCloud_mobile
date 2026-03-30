@@ -28,6 +28,8 @@ You can start developing by editing the files inside the **app** directory. This
 
 ## Estructura del proyecto
 
+
+```plaintext
 RHCloud_mobile/
 │
 ├── app/                              # Pantallas y navegación (Expo Router)
@@ -74,6 +76,7 @@ RHCloud_mobile/
 ├── tsconfig.json                     # Configuración TypeScript
 ├── eslint.config.js                  # Configuración ESLint
 └── package.json
+```
 
 
 ## Librerías
