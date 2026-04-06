@@ -73,7 +73,19 @@ http.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error);
+    // Extraer mensaje legible del body del servidor
+    const serverMsg =
+      error.response?.data?.detail?.[0]?.msg ??
+      error.response?.data?.detail ??
+      error.response?.data?.message ??
+      error.response?.data;
+
+    const msg =
+      typeof serverMsg === 'string'
+        ? serverMsg
+        : `Error ${error.response?.status ?? 'de red'}`;
+
+    return Promise.reject(new Error(msg));
   }
 );
 

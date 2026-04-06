@@ -206,7 +206,12 @@ export default function LoginScreen() {
       await login(usuario, contrasena);
       const profile = await getMe();
       setUser(profile);
-      router.replace('/');
+      // Si el usuario no está verificado lo mandamos a completar perfil
+      if (!profile.is_verified) {
+        router.replace('/complete-profile');
+      } else {
+        router.replace('/');
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Error al iniciar sesión';
       setError(msg);

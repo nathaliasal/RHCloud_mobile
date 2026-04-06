@@ -9,4 +9,15 @@ export const ENDPOINTS = {
     resetPassword: `${API_BASE_URL}/api/v1/auth/reset-password`,
     me: `${API_BASE_URL}/api/v1/auth/me`,
   },
+  users: {
+    verify: `${API_BASE_URL}/api/v1/users/verify`,
+    changePassword: `${API_BASE_URL}/api/v1/users/password`,
+  },
+  persons: {
+    create: `${API_BASE_URL}/api/v1/persons/`,
+    documentTypes: `${API_BASE_URL}/api/v1/persons/document/available`,
+    genders: `${API_BASE_URL}/api/v1/persons/genders/available`,
+    myProfile: `${API_BASE_URL}/api/v1/persons/me/profile`,
+    updateProfile: `${API_BASE_URL}/api/v1/persons/me/profile`,
+  },
 } as const;

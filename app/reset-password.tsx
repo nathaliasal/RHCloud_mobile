@@ -21,6 +21,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useLocalSearchParams, router } from 'expo-router';
 import { resetPassword } from '@/services/auth';
+import { PASSWORD_RULES, isPasswordValid } from '@/utils/password';
 
 // ── Palette ───────────────────────────────────────────────
 const C = {
@@ -53,6 +54,24 @@ const F = Platform.select({
     regular: 'sans-serif',
   },
 });
+
+// ── Indicador de reglas en tiempo real ───────────────────
+function PasswordRules({ password }: { password: string }) {
+  if (!password) return null;
+  return (
+    <View style={styles.rulesBox}>
+      {PASSWORD_RULES.map((rule) => {
+        const ok = rule.test(password);
+        return (
+          <View key={rule.id} style={styles.ruleRow}>
+            <Text style={[styles.ruleDot, ok && styles.ruleDotOk]}>{ok ? '✓' : '·'}</Text>
+            <Text style={[styles.ruleText, ok && styles.ruleTextOk]}>{rule.label}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 // ── Campo de texto ────────────────────────────────────────
 function Field({
@@ -142,16 +161,12 @@ export default function ResetPasswordScreen() {
     transform: [{ translateY: interpolate(btnProgress.value, [0, 1], [12, 0]) }],
   }));
 
-  const passwordsMatch = newPassword && confirmPassword && newPassword === confirmPassword;
+  const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
+  const canSubmit = isPasswordValid(newPassword) && passwordsMatch && !!token && !loading;
 
   const handleReset = async () => {
-    if (loading || !passwordsMatch || !token) return;
+    if (!canSubmit) return;
     setError(null);
-
-    if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
 
     setLoading(true);
     try {
@@ -231,6 +246,7 @@ export default function ResetPasswordScreen() {
                   secureTextEntry
                   delay={200}
                 />
+                <PasswordRules password={newPassword} />
 
                 <Field
                   label="Confirmar contraseña"
@@ -261,13 +277,10 @@ export default function ResetPasswordScreen() {
 
                 <Animated.View style={btnStyle}>
                   <TouchableOpacity
-                    style={[
-                      styles.btnPrimary,
-                      (!passwordsMatch || loading || !token) && styles.btnDisabled,
-                    ]}
+                    style={[styles.btnPrimary, !canSubmit && styles.btnDisabled]}
                     activeOpacity={0.82}
                     onPress={handleReset}
-                    disabled={!passwordsMatch || loading || !token}
+                    disabled={!canSubmit}
                   >
                     {loading ? (
                       <ActivityIndicator color="#07101F" size="small" />
@@ -422,6 +435,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingHorizontal: 4,
   },
+
+  // ── Password rules
+  rulesBox: { paddingVertical: 6, gap: 5, marginBottom: 4 },
+  ruleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ruleDot: {
+    fontSize: 14, width: 16, textAlign: 'center',
+    color: 'rgba(237,244,255,0.25)', fontFamily: F?.bold,
+  },
+  ruleDotOk: { color: '#4ADE80' },
+  ruleText: { fontSize: 12.5, color: 'rgba(237,244,255,0.25)', fontFamily: F?.regular },
+  ruleTextOk: { color: '#4ADE80' },
 
   // ── Error / Success
   errorBox: {
