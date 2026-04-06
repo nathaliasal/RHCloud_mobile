@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import Animated, {
   Easing,
   interpolate,
 } from 'react-native-reanimated';
+import NotificationSidebar, { BellButton } from '@/components/notification-sidebar';
 
 const { width } = Dimensions.get('window');
 
@@ -137,6 +138,7 @@ function FeatureCard({
 
 // ── Home / Welcome Tab ────────────────────────────────────
 export default function HomeScreen() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const heroOpacity = useSharedValue(0);
   const heroY = useSharedValue(-18);
   const logoScale = useSharedValue(0.75);
@@ -182,6 +184,17 @@ export default function HomeScreen() {
       <View style={styles.orb1} />
       <View style={styles.orb2} />
       <View style={styles.orb3} />
+
+      {/* Bell button ── top-right floating */}
+      <View style={styles.bellWrap}>
+        <BellButton onPress={() => setSidebarOpen(true)} />
+      </View>
+
+      {/* Notification Sidebar */}
+      <NotificationSidebar
+        visible={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -260,6 +273,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,229,204,0.06)',
     bottom: 40,
     right: -40,
+  },
+  bellWrap: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 56 : 42,
+    right: 22,
+    zIndex: 10,
   },
   scroll: { flex: 1 },
   scrollContent: {
