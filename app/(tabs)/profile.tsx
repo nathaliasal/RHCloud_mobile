@@ -1,26 +1,27 @@
-import React, { useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-  withSpring,
-  Easing,
-} from 'react-native-reanimated';
+import { clearTokens } from '@/services/auth';
+import { getMyProfile } from '@/services/persons';
+import { useAuthStore } from '@/stores/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { getMyProfile } from '@/services/persons';
-import { clearTokens } from '@/services/auth';
-import { useAuthStore } from '@/stores/auth';
+import React, { useEffect } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import LoginScreen from './login';
 
 // ── Palette ───────────────────────────────────────────────
 const C = {
@@ -112,6 +113,7 @@ export default function ProfileScreen() {
     queryKey: ['myProfile'],
     queryFn: getMyProfile,
     staleTime: 1000 * 60 * 5,
+    enabled: !!user,
   });
 
   const headerOpacity = useSharedValue(0);
@@ -126,6 +128,13 @@ export default function ProfileScreen() {
     opacity: headerOpacity.value,
     transform: [{ translateY: headerY.value }],
   }));
+
+  const actionsStyle = useAnimatedStyle(() => ({
+    opacity: withDelay(860, withTiming(1, { duration: 400 })),
+  }));
+
+  // Auth guard — after ALL hooks
+  if (!user) return <LoginScreen />;
 
   const handleLogout = async () => {
     await clearTokens();
@@ -223,9 +232,7 @@ export default function ProfileScreen() {
         )}
 
         {/* ── Acciones ── */}
-        <Animated.View style={[styles.actionsWrap, useAnimatedStyle(() => ({
-          opacity: withDelay(860, withTiming(1, { duration: 400 })),
-        }))]}>
+        <Animated.View style={[styles.actionsWrap, actionsStyle]}>
           <TouchableOpacity
             style={styles.btnChangePassword}
             activeOpacity={0.8}
@@ -272,7 +279,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 64 : 48,
-    paddingBottom: 52,
+    paddingBottom: 100,
   },
 
   // ── Header

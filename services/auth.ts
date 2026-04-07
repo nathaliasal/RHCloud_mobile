@@ -29,6 +29,7 @@ export interface UserProfile {
   is_active: boolean;
   is_verified: boolean;
   role: string;
+  id_employee: number | null;
 }
 
 // ── Secure Storage keys ───────────────────────────────────

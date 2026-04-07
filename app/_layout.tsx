@@ -3,8 +3,11 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import 'react-native-reanimated';
+import { useEffect } from 'react';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getMe } from '@/services/auth';
+import { useAuthStore } from '@/stores/auth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,12 +22,25 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+function AuthInit() {
+  const { setUser } = useAuthStore();
+
+  useEffect(() => {
+    getMe().then(setUser).catch(() => {
+      // Sin tokens o sesión expirada — el store queda en null
+    });
+  }, []);
+
+  return null;
+}
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AuthInit />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="complete-profile" options={{ headerShown: false }} />
