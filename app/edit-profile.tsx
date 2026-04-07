@@ -20,7 +20,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getMyProfile, updateMyProfile, getGenders } from '@/services/persons';
+import {
+  getMyProfile,
+  updateMyProfile,
+  getGenders,
+  type PersonResponse,
+  type PersonUpdate,
+} from '@/services/persons';
+import { ApiError } from '@/services/http';
 
 // ── Palette ───────────────────────────────────────────────
 const C = {
@@ -171,6 +178,70 @@ function SectionHeader({ title, delay = 0 }: { title: string; delay?: number }) 
 }
 
 // ── Edit Profile Screen ───────────────────────────────────
+type EditProfileForm = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  birthDate: string;
+  gender: string;
+  codeDepartment: string;
+  codeCity: string;
+  phone: string;
+  address: string;
+};
+
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function buildProfileUpdatePayload(
+  profile: PersonResponse | undefined,
+  form: EditProfileForm
+): PersonUpdate {
+  const payload: PersonUpdate = {};
+
+  const fields: {
+    key: keyof PersonUpdate;
+    next: string;
+    current: string | null | undefined;
+  }[] = [
+    { key: 'first_name', next: form.firstName, current: profile?.first_name },
+    { key: 'last_name', next: form.lastName, current: profile?.last_name },
+    { key: 'email', next: form.email, current: profile?.email },
+    { key: 'birth_date', next: form.birthDate, current: profile?.birth_date },
+    { key: 'gender', next: form.gender, current: profile?.gender },
+    { key: 'code_department', next: form.codeDepartment, current: profile?.code_department },
+    { key: 'code_city', next: form.codeCity, current: profile?.code_city },
+    { key: 'phone', next: form.phone, current: profile?.phone },
+    { key: 'address', next: form.address, current: profile?.address },
+  ];
+
+  fields.forEach(({ key, next, current }) => {
+    const normalizedNext = normalizeOptionalText(next);
+    const normalizedCurrent = normalizeOptionalText(current);
+
+    if (normalizedNext !== normalizedCurrent) {
+      payload[key] = normalizedNext;
+    }
+  });
+
+  return payload;
+}
+
+function getUpdateErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 500) {
+      return 'No fue posible guardar los cambios. El backend devolvio un error interno (500).';
+    }
+    if (error.status === 0 || error.status === undefined) {
+      return 'No fue posible conectar con el servidor.';
+    }
+  }
+
+  return error instanceof Error ? error.message : 'Error al actualizar los datos';
+}
+
 export default function EditProfileScreen() {
   const queryClient = useQueryClient();
 
@@ -220,7 +291,7 @@ export default function EditProfileScreen() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const headerOpacity = useSharedValue(0);
   const headerY = useSharedValue(-14);
@@ -241,29 +312,44 @@ export default function EditProfileScreen() {
   const handleSave = async () => {
     if (loading) return;
     setError(null);
-    setSuccess(false);
+    setSuccessMessage(null);
     setLoading(true);
     try {
-      const emailChanged = email.trim() !== (profile?.email ?? '');
-
-      const updated = await updateMyProfile({
-        ...(firstName && { first_name: firstName.trim() }),
-        ...(lastName && { last_name: lastName.trim() }),
-        // Solo enviar email si el usuario lo modificó para evitar error 500 por unicidad
-        ...(emailChanged && email.trim() && { email: email.trim() }),
-        ...(birthDate && { birth_date: birthDate.trim() }),
-        ...(gender && { gender }),
-        ...(codeDepartment && { code_department: codeDepartment.trim() }),
-        ...(codeCity && { code_city: codeCity.trim() }),
-        ...(phone && { phone: phone.trim() }),
-        ...(address && { address: address.trim() }),
+      const payload = buildProfileUpdatePayload(profile, {
+        firstName,
+        lastName,
+        email,
+        birthDate,
+        gender,
+        codeDepartment,
+        codeCity,
+        phone,
+        address,
       });
-      // Actualizar la cache de React Query con los datos nuevos
+      const changedFields = Object.keys(payload);
+
+      if (changedFields.length === 0) {
+        setSuccessMessage('No habia cambios para guardar.');
+        setTimeout(() => router.back(), 800);
+        return;
+      }
+
+      console.log('[EditProfile] Updating profile', { changedFields });
+
+      const updated = await updateMyProfile(payload);
       queryClient.setQueryData(['myProfile'], updated);
-      setSuccess(true);
+      setSuccessMessage('Perfil actualizado correctamente.');
       setTimeout(() => router.back(), 1200);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Error al actualizar los datos';
+      if (e instanceof ApiError) {
+        console.warn('[EditProfile] updateMyProfile failed', {
+          status: e.status,
+          method: e.method,
+          url: e.url,
+          data: e.data,
+        });
+      }
+      const msg = getUpdateErrorMessage(e);
       setError(msg);
     } finally {
       setLoading(false);
@@ -334,9 +420,9 @@ export default function EditProfileScreen() {
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
-          {success && (
+          {successMessage && (
             <View style={styles.successBox}>
-              <Text style={styles.successText}>Perfil actualizado correctamente.</Text>
+              <Text style={styles.successText}>{successMessage}</Text>
             </View>
           )}
 
