@@ -4,6 +4,30 @@ import { API_BASE_URL } from '@/constants/api';
 import { getTokens, refreshTokens, clearTokens } from '@/services/auth';
 import { useAuthStore } from '@/stores/auth';
 
+export class ApiError extends Error {
+  status?: number;
+  data?: unknown;
+  url?: string;
+  method?: string;
+
+  constructor(
+    message: string,
+    options?: {
+      status?: number;
+      data?: unknown;
+      url?: string;
+      method?: string;
+    }
+  ) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = options?.status;
+    this.data = options?.data;
+    this.url = options?.url;
+    this.method = options?.method;
+  }
+}
+
 // ── Axios instance ────────────────────────────────────────
 
 const http = axios.create({
@@ -85,7 +109,14 @@ http.interceptors.response.use(
         ? serverMsg
         : `Error ${error.response?.status ?? 'de red'}`;
 
-    return Promise.reject(new Error(msg));
+    return Promise.reject(
+      new ApiError(msg, {
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
+      })
+    );
   }
 );
 

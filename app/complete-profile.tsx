@@ -10,6 +10,7 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -19,16 +20,26 @@ import Animated, {
   withSpring,
   Easing,
 } from 'react-native-reanimated';
+import DateTimePicker, {
+  type DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import { format } from 'date-fns';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { createPerson, getDocumentTypes, getGenders, DocumentType } from '@/services/persons';
+import { createPerson, getDocumentTypes, getGenders, type DocumentType } from '@/services/persons';
 import { verifyUser } from '@/services/users';
 import { useAuthStore } from '@/stores/auth';
 import { getMe } from '@/services/auth';
+import {
+  getColombiaCities,
+  getColombiaMunicipalities,
+  isCountryStateCityConfigured,
+  type LocationOption,
+} from '@/services/locations';
 
 const { width } = Dimensions.get('window');
 
-// ── Palette ───────────────────────────────────────────────
 const C = {
   bg: '#07101F',
   accent: '#00E5CC',
@@ -43,9 +54,10 @@ const C = {
   orb1: 'rgba(0,180,216,0.16)',
   orb2: 'rgba(100,30,200,0.13)',
   sectionBorder: 'rgba(255,255,255,0.06)',
+  sheetBg: '#101B2E',
+  sheetOverlay: 'rgba(4,10,20,0.78)',
 };
 
-// ── Font helpers ──────────────────────────────────────────
 const F = Platform.select({
   ios: {
     heavy: 'AvenirNext-Heavy',
@@ -61,7 +73,6 @@ const F = Platform.select({
   },
 });
 
-// ── Field component ───────────────────────────────────────
 function Field({
   label,
   value,
@@ -74,7 +85,7 @@ function Field({
 }: {
   label: string;
   value: string;
-  onChangeText: (v: string) => void;
+  onChangeText: (value: string) => void;
   placeholder: string;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric';
@@ -120,7 +131,6 @@ function Field({
   );
 }
 
-// ── Pill selector ─────────────────────────────────────────
 function PillSelector<T extends string>({
   label,
   options,
@@ -131,7 +141,7 @@ function PillSelector<T extends string>({
   label: string;
   options: { value: T; label: string }[];
   value: T | '';
-  onChange: (v: T) => void;
+  onChange: (value: T) => void;
   delay?: number;
 }) {
   const opacity = useSharedValue(0);
@@ -151,15 +161,14 @@ function PillSelector<T extends string>({
     <Animated.View style={[styles.fieldWrap, wrapStyle]}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <View style={styles.pillRow}>
-        {options.map((opt) => (
+        {options.map((option) => (
           <TouchableOpacity
-            key={opt.value}
-            style={[styles.pill, value === opt.value && styles.pillActive]}
-            onPress={() => onChange(opt.value)}
-            activeOpacity={0.75}
-          >
-            <Text style={[styles.pillText, value === opt.value && styles.pillTextActive]}>
-              {opt.label}
+            key={option.value}
+            style={[styles.pill, value === option.value && styles.pillActive]}
+            onPress={() => onChange(option.value)}
+            activeOpacity={0.75}>
+            <Text style={[styles.pillText, value === option.value && styles.pillTextActive]}>
+              {option.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -168,7 +177,6 @@ function PillSelector<T extends string>({
   );
 }
 
-// ── Section header ────────────────────────────────────────
 function SectionHeader({ title, delay = 0 }: { title: string; delay?: number }) {
   const opacity = useSharedValue(0);
 
@@ -187,19 +195,156 @@ function SectionHeader({ title, delay = 0 }: { title: string; delay?: number }) 
   );
 }
 
-// ── Complete Profile Screen ───────────────────────────────
+function SelectField({
+  label,
+  value,
+  placeholder,
+  onPress,
+  required = false,
+  disabled = false,
+  loading = false,
+  helperText,
+  delay = 0,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onPress: () => void;
+  required?: boolean;
+  disabled?: boolean;
+  loading?: boolean;
+  helperText?: string;
+  delay?: number;
+}) {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(14);
+
+  useEffect(() => {
+    opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
+    translateY.value = withDelay(delay, withSpring(0, { damping: 22, stiffness: 90 }));
+  }, []);
+
+  const wrapStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.fieldWrap, wrapStyle]}>
+      <Text style={styles.fieldLabel}>
+        {label}
+        {required && <Text style={styles.required}> *</Text>}
+      </Text>
+      <TouchableOpacity
+        style={[
+          styles.inputBox,
+          styles.selectBox,
+          disabled && styles.selectBoxDisabled,
+        ]}
+        onPress={onPress}
+        activeOpacity={0.82}
+        disabled={disabled}>
+        <Text style={[styles.input, !value && styles.selectPlaceholder]}>
+          {value || placeholder}
+        </Text>
+        {loading ? (
+          <ActivityIndicator color={C.accent} size="small" />
+        ) : (
+          <Text style={styles.selectArrow}>v</Text>
+        )}
+      </TouchableOpacity>
+      {helperText ? <Text style={styles.helperText}>{helperText}</Text> : null}
+    </Animated.View>
+  );
+}
+
+function SelectionSheet({
+  visible,
+  title,
+  selectedValue,
+  options,
+  placeholder,
+  onClose,
+  onConfirm,
+}: {
+  visible: boolean;
+  title: string;
+  selectedValue: string;
+  options: LocationOption[];
+  placeholder: string;
+  onClose: () => void;
+  onConfirm: (value: string) => void;
+}) {
+  const [draftValue, setDraftValue] = useState(selectedValue);
+  const isAndroid = Platform.OS === 'android';
+  const pickerTextColor = isAndroid ? '#07101F' : C.text;
+  const pickerPlaceholderColor = isAndroid ? 'rgba(7,16,31,0.55)' : C.muted;
+
+  useEffect(() => {
+    if (visible) {
+      setDraftValue(selectedValue);
+    }
+  }, [selectedValue, visible]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.sheetOverlay}>
+        <View style={styles.sheetCard}>
+          <Text style={styles.sheetTitle}>{title}</Text>
+          <View style={styles.sheetPickerWrap}>
+            <Picker
+              selectedValue={draftValue}
+              onValueChange={(value) => setDraftValue(String(value))}
+              dropdownIconColor={C.accent}
+              style={[styles.sheetPicker, isAndroid && styles.sheetPickerAndroid]}
+              itemStyle={styles.sheetPickerItem}>
+              <Picker.Item label={placeholder} value="" color={pickerPlaceholderColor} />
+              {options.map((option) => (
+                <Picker.Item
+                  key={`${title}-${option.value}`}
+                  label={option.label}
+                  value={option.value}
+                  color={pickerTextColor}
+                />
+              ))}
+            </Picker>
+          </View>
+          <View style={styles.sheetActions}>
+            <TouchableOpacity style={styles.sheetBtnSecondary} onPress={onClose} activeOpacity={0.82}>
+              <Text style={styles.sheetBtnSecondaryText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.sheetBtnPrimary}
+              onPress={() => {
+                onConfirm(draftValue);
+                onClose();
+              }}
+              activeOpacity={0.82}>
+              <Text style={styles.sheetBtnPrimaryText}>Confirmar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function getBirthDateText(date: Date | null): string {
+  return date ? format(date, 'yyyy-MM-dd') : '';
+}
+
 export default function CompleteProfileScreen() {
   const { setUser } = useAuthStore();
+  const hasCountryStateCityKey = isCountryStateCityConfigured();
 
-  // Tipos de documento desde el servidor
   const { data: docTypesRaw } = useQuery({
     queryKey: ['documentTypes'],
     queryFn: getDocumentTypes,
-    staleTime: Infinity, // no cambian frecuentemente
+    staleTime: Infinity,
   });
 
   const docTypeOptions = useMemo(
-    () => (docTypesRaw ?? ['CC', 'CE', 'NIT']).map((v) => ({ value: v, label: v })),
+    () => (docTypesRaw ?? ['CC', 'CE', 'NIT']).map((value) => ({ value, label: value })),
     [docTypesRaw]
   );
 
@@ -210,34 +355,55 @@ export default function CompleteProfileScreen() {
   });
 
   const genderOptions = useMemo(
-    () => (gendersRaw ?? ['Masculino', 'Femenino', 'Otro']).map((v) => ({ value: v, label: v })),
+    () => (gendersRaw ?? ['Masculino', 'Femenino', 'Otro']).map((value) => ({ value, label: value })),
     [gendersRaw]
   );
 
-  // Campos obligatorios
+  const {
+    data: municipalityOptions = [],
+    isLoading: loadingMunicipalities,
+    error: municipalitiesError,
+  } = useQuery({
+    queryKey: ['colombiaMunicipalities'],
+    queryFn: getColombiaMunicipalities,
+    staleTime: Infinity,
+    enabled: hasCountryStateCityKey,
+  });
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-
-  // Documento
   const [documentType, setDocumentType] = useState<DocumentType | ''>('CC');
   const [documentNumber, setDocumentNumber] = useState('');
-
-  // Datos personales
   const [birthDate, setBirthDate] = useState('');
+  const [birthDateValue, setBirthDateValue] = useState<Date | null>(null);
+  const [showAndroidDatePicker, setShowAndroidDatePicker] = useState(false);
+  const [showIosDatePicker, setShowIosDatePicker] = useState(false);
+  const [draftBirthDateValue, setDraftBirthDateValue] = useState(new Date());
   const [gender, setGender] = useState<string>('');
-
-  // Ubicacion y contacto
-  const [codeDepartment, setCodeDepartment] = useState('');
-  const [codeCity, setCodeCity] = useState('');
+  const [selectedMunicipalityIso2, setSelectedMunicipalityIso2] = useState('');
+  const [selectedMunicipalityLabel, setSelectedMunicipalityLabel] = useState('');
+  const [selectedCityLabel, setSelectedCityLabel] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [showMunicipalitySheet, setShowMunicipalitySheet] = useState(false);
+  const [showCitySheet, setShowCitySheet] = useState(false);
+
+  const {
+    data: cityOptions = [],
+    isLoading: loadingCities,
+    error: citiesError,
+  } = useQuery({
+    queryKey: ['colombiaCities', selectedMunicipalityIso2],
+    queryFn: () => getColombiaCities(selectedMunicipalityIso2),
+    staleTime: Infinity,
+    enabled: hasCountryStateCityKey && selectedMunicipalityIso2.length > 0,
+  });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit = firstName.trim().length > 0 && lastName.trim().length > 0;
 
-  // Animacion del header
   const headerOpacity = useSharedValue(0);
   const headerY = useSharedValue(-16);
   const btnOpacity = useSharedValue(0);
@@ -248,6 +414,10 @@ export default function CompleteProfileScreen() {
     btnOpacity.value = withDelay(800, withTiming(1, { duration: 500 }));
   }, []);
 
+  useEffect(() => {
+    setSelectedCityLabel('');
+  }, [selectedMunicipalityIso2]);
+
   const headerStyle = useAnimatedStyle(() => ({
     opacity: headerOpacity.value,
     transform: [{ translateY: headerY.value }],
@@ -255,34 +425,73 @@ export default function CompleteProfileScreen() {
 
   const btnStyle = useAnimatedStyle(() => ({ opacity: btnOpacity.value }));
 
+  const municipalityErrorText =
+    municipalitiesError instanceof Error ? municipalitiesError.message : null;
+  const cityErrorText = citiesError instanceof Error ? citiesError.message : null;
+
+  const locationHelperText = useMemo(() => {
+    if (!hasCountryStateCityKey) {
+      return 'Configura EXPO_PUBLIC_CSC_API_KEY para habilitar municipios y ciudades';
+    }
+    if (municipalityErrorText) return municipalityErrorText;
+    if (selectedMunicipalityIso2 && cityErrorText) return cityErrorText;
+    return undefined;
+  }, [cityErrorText, hasCountryStateCityKey, municipalityErrorText, selectedMunicipalityIso2]);
+
+  const handleBirthDatePress = () => {
+    const currentValue = birthDateValue ?? new Date('2000-01-01T00:00:00');
+
+    if (Platform.OS === 'ios') {
+      setDraftBirthDateValue(currentValue);
+      setShowIosDatePicker(true);
+      return;
+    }
+
+    setShowAndroidDatePicker(true);
+  };
+
+  const handleAndroidBirthDateChange = (
+    event: DateTimePickerEvent,
+    selectedDate?: Date
+  ) => {
+    setShowAndroidDatePicker(false);
+
+    if (event.type !== 'set' || !selectedDate) return;
+
+    setBirthDateValue(selectedDate);
+    setBirthDate(getBirthDateText(selectedDate));
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit || loading) return;
     setError(null);
     setLoading(true);
+
     try {
-      await createPerson({
+      const payload = {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         ...(documentType && { document_type: documentType }),
         ...(documentNumber && { document_number: documentNumber.trim() }),
-        ...(birthDate && { birth_date: birthDate.trim() }),
+        ...(birthDate && { birth_date: birthDate }),
         ...(gender && { gender }),
-        ...(codeDepartment && { code_department: codeDepartment.trim() }),
-        ...(codeCity && { code_city: codeCity.trim() }),
+        ...(selectedMunicipalityLabel && { code_department: selectedMunicipalityLabel }),
+        ...(selectedCityLabel && { code_city: selectedCityLabel }),
         ...(phone && { phone: phone.trim() }),
         ...(address && { address: address.trim() }),
-      });
+      };
 
-      // Marcar usuario como verificado tras completar los datos personales
+      console.log('[CompleteProfile] createPerson payload', payload);
+
+      await createPerson(payload);
       await verifyUser();
 
-      // Refrescar el perfil para obtener is_verified actualizado
       const profile = await getMe();
       setUser(profile);
       router.replace('/');
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Error al guardar los datos';
-      setError(msg);
+      const message = e instanceof Error ? e.message : 'Error al guardar los datos';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -295,15 +504,12 @@ export default function CompleteProfileScreen() {
 
       <KeyboardAvoidingView
         style={styles.kav}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* ── Header ── */}
+          keyboardShouldPersistTaps="handled">
           <Animated.View style={[styles.header, headerStyle]}>
             <View style={styles.logoMark}>
               <Text style={styles.logoText}>RH</Text>
@@ -317,8 +523,7 @@ export default function CompleteProfileScreen() {
             </Text>
           </Animated.View>
 
-          {/* ── Datos básicos ── */}
-          <SectionHeader title="DATOS BÁSICOS" delay={150} />
+          <SectionHeader title="DATOS BASICOS" delay={150} />
           <View style={styles.card}>
             <Field
               label="Nombre(s)"
@@ -332,13 +537,12 @@ export default function CompleteProfileScreen() {
               label="Apellido(s)"
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Ej: García López"
+              placeholder="Ej: Garcia Lopez"
               required
               delay={270}
             />
           </View>
 
-          {/* ── Documento ── */}
           <SectionHeader title="DOCUMENTO" delay={330} />
           <View style={styles.card}>
             <PillSelector<DocumentType>
@@ -349,7 +553,7 @@ export default function CompleteProfileScreen() {
               delay={380}
             />
             <Field
-              label="Número de documento"
+              label="Numero de documento"
               value={documentNumber}
               onChangeText={setDocumentNumber}
               placeholder="Ej: 1234567890"
@@ -358,18 +562,17 @@ export default function CompleteProfileScreen() {
             />
           </View>
 
-          {/* ── Información personal ── */}
-          <SectionHeader title="INFORMACIÓN PERSONAL" delay={500} />
+          <SectionHeader title="INFORMACION PERSONAL" delay={500} />
           <View style={styles.card}>
-            <Field
+            <SelectField
               label="Fecha de nacimiento"
               value={birthDate}
-              onChangeText={setBirthDate}
               placeholder="YYYY-MM-DD"
+              onPress={handleBirthDatePress}
               delay={550}
             />
             <PillSelector<string>
-              label="Género"
+              label="Genero"
               options={genderOptions}
               value={gender}
               onChange={setGender}
@@ -377,27 +580,37 @@ export default function CompleteProfileScreen() {
             />
           </View>
 
-          {/* ── Ubicación y contacto ── */}
-          <SectionHeader title="UBICACIÓN Y CONTACTO" delay={670} />
+          <SectionHeader title="UBICACION Y CONTACTO" delay={670} />
           <View style={styles.card}>
-            <Field
-              label="Código de departamento"
-              value={codeDepartment}
-              onChangeText={setCodeDepartment}
-              placeholder="Ej: 11"
-              keyboardType="numeric"
+            <SelectField
+              label="Seleccione municipio"
+              value={selectedMunicipalityLabel}
+              placeholder="Selecciona un municipio"
+              onPress={() => setShowMunicipalitySheet(true)}
+              disabled={!hasCountryStateCityKey || municipalityOptions.length === 0}
+              loading={loadingMunicipalities}
+              helperText={locationHelperText}
               delay={720}
             />
-            <Field
-              label="Código de ciudad"
-              value={codeCity}
-              onChangeText={setCodeCity}
-              placeholder="Ej: 11001"
-              keyboardType="numeric"
+            <SelectField
+              label="Seleccione ciudad"
+              value={selectedCityLabel}
+              placeholder={
+                selectedMunicipalityIso2
+                  ? 'Selecciona una ciudad'
+                  : 'Selecciona primero un municipio'
+              }
+              onPress={() => setShowCitySheet(true)}
+              disabled={
+                !hasCountryStateCityKey ||
+                !selectedMunicipalityIso2 ||
+                cityOptions.length === 0
+              }
+              loading={loadingCities}
               delay={780}
             />
             <Field
-              label="Teléfono"
+              label="Telefono"
               value={phone}
               onChangeText={setPhone}
               placeholder="Ej: 3001234567"
@@ -405,7 +618,7 @@ export default function CompleteProfileScreen() {
               delay={840}
             />
             <Field
-              label="Dirección"
+              label="Direccion"
               value={address}
               onChangeText={setAddress}
               placeholder="Ej: Calle 123 # 45-67"
@@ -413,28 +626,25 @@ export default function CompleteProfileScreen() {
             />
           </View>
 
-          {/* ── Error ── */}
           {error && (
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
 
-          {/* ── Botón guardar ── */}
           <Animated.View style={[styles.btnWrap, btnStyle]}>
             <TouchableOpacity
               style={[styles.btnGuardar, (!canSubmit || loading) && styles.btnDisabled]}
               activeOpacity={0.82}
               onPress={handleSubmit}
-              disabled={!canSubmit || loading}
-            >
+              disabled={!canSubmit || loading}>
               {loading ? (
                 <ActivityIndicator color="#07101F" size="small" />
               ) : (
                 <>
                   <Text style={styles.btnLabel}>Guardar y continuar</Text>
                   <View style={styles.btnArrowWrap}>
-                    <Text style={styles.btnArrow}>→</Text>
+                    <Text style={styles.btnArrow}>{'>'}</Text>
                   </View>
                 </>
               )}
@@ -442,11 +652,89 @@ export default function CompleteProfileScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {showAndroidDatePicker && (
+        <DateTimePicker
+          value={birthDateValue ?? new Date('2000-01-01T00:00:00')}
+          mode="date"
+          display="default"
+          maximumDate={new Date()}
+          onChange={handleAndroidBirthDateChange}
+        />
+      )}
+
+      <Modal
+        visible={showIosDatePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowIosDatePicker(false)}>
+        <View style={styles.sheetOverlay}>
+          <View style={styles.sheetCard}>
+            <Text style={styles.sheetTitle}>Selecciona la fecha de nacimiento</Text>
+            <DateTimePicker
+              value={draftBirthDateValue}
+              mode="date"
+              display="spinner"
+              maximumDate={new Date()}
+              onChange={(_, selectedDate) => {
+                if (selectedDate) {
+                  setDraftBirthDateValue(selectedDate);
+                }
+              }}
+              style={styles.iosDatePicker}
+            />
+            <View style={styles.sheetActions}>
+              <TouchableOpacity
+                style={styles.sheetBtnSecondary}
+                onPress={() => setShowIosDatePicker(false)}
+                activeOpacity={0.82}>
+                <Text style={styles.sheetBtnSecondaryText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sheetBtnPrimary}
+                onPress={() => {
+                  setBirthDateValue(draftBirthDateValue);
+                  setBirthDate(getBirthDateText(draftBirthDateValue));
+                  setShowIosDatePicker(false);
+                }}
+                activeOpacity={0.82}>
+                <Text style={styles.sheetBtnPrimaryText}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <SelectionSheet
+        visible={showMunicipalitySheet}
+        title="Selecciona un municipio"
+        selectedValue={selectedMunicipalityIso2}
+        options={municipalityOptions}
+        placeholder="Selecciona un municipio"
+        onClose={() => setShowMunicipalitySheet(false)}
+        onConfirm={(value) => {
+          const selectedOption = municipalityOptions.find((option) => option.value === value);
+          setSelectedMunicipalityIso2(value);
+          setSelectedMunicipalityLabel(selectedOption?.label ?? '');
+        }}
+      />
+
+      <SelectionSheet
+        visible={showCitySheet}
+        title="Selecciona una ciudad"
+        selectedValue={selectedCityLabel}
+        options={cityOptions}
+        placeholder="Selecciona una ciudad"
+        onClose={() => setShowCitySheet(false)}
+        onConfirm={(value) => {
+          const selectedOption = cityOptions.find((option) => option.value === value);
+          setSelectedCityLabel(selectedOption?.label ?? '');
+        }}
+      />
     </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   kav: { flex: 1 },
@@ -474,8 +762,6 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 64 : 48,
     paddingBottom: 52,
   },
-
-  // ── Header
   header: { alignItems: 'center', marginBottom: 32 },
   logoMark: {
     width: 64,
@@ -528,8 +814,6 @@ const styles = StyleSheet.create({
     maxWidth: width * 0.75,
     fontFamily: F?.regular,
   },
-
-  // ── Section
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -550,8 +834,6 @@ const styles = StyleSheet.create({
     fontFamily: F?.bold,
     opacity: 0.7,
   },
-
-  // ── Card
   card: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 20,
@@ -561,8 +843,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 4,
   },
-
-  // ── Fields
   fieldWrap: { marginBottom: 12 },
   fieldLabel: {
     fontSize: 12,
@@ -574,6 +854,13 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   required: { color: C.error },
+  helperText: {
+    marginTop: 6,
+    color: C.muted,
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontFamily: F?.regular,
+  },
   inputBox: {
     backgroundColor: C.inputBg,
     borderRadius: 13,
@@ -588,8 +875,20 @@ const styles = StyleSheet.create({
     color: C.text,
     fontFamily: F?.regular,
   },
-
-  // ── Pill selector
+  selectBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectBoxDisabled: { opacity: 0.55 },
+  selectPlaceholder: { color: C.muted },
+  selectArrow: {
+    color: C.accent,
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: F?.bold,
+    marginLeft: 12,
+  },
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: {
     paddingVertical: 7,
@@ -612,8 +911,6 @@ const styles = StyleSheet.create({
     color: C.accent,
     fontFamily: F?.demi,
   },
-
-  // ── Error
   errorBox: {
     backgroundColor: 'rgba(255,107,107,0.12)',
     borderRadius: 10,
@@ -630,8 +927,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
-
-  // ── Button
   btnWrap: { marginTop: 4 },
   btnGuardar: {
     flexDirection: 'row',
@@ -665,4 +960,79 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnArrow: { fontSize: 15, color: '#07101F', fontWeight: '800' },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: C.sheetOverlay,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  sheetCard: {
+    backgroundColor: C.sheetBg,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: C.accentBorder,
+    padding: 20,
+  },
+  sheetTitle: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: F?.bold,
+    marginBottom: 14,
+    textAlign: 'center',
+  },
+  sheetPickerWrap: {
+    backgroundColor: C.inputBg,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: C.inputBorder,
+    overflow: 'hidden',
+  },
+  sheetPicker: {
+    color: C.text,
+    minHeight: 180,
+  },
+  sheetPickerAndroid: {
+    color: '#07101F',
+    backgroundColor: '#FFFFFF',
+  },
+  sheetPickerItem: {
+    color: C.text,
+  },
+  sheetActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 18,
+  },
+  sheetBtnSecondary: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: C.inputBorder,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  sheetBtnSecondaryText: {
+    color: C.text,
+    fontSize: 14,
+    fontFamily: F?.demi,
+  },
+  sheetBtnPrimary: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    paddingVertical: 14,
+    backgroundColor: C.accent,
+  },
+  sheetBtnPrimaryText: {
+    color: '#07101F',
+    fontSize: 14,
+    fontFamily: F?.bold,
+  },
+  iosDatePicker: {
+    alignSelf: 'center',
+  },
 });

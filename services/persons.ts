@@ -112,15 +112,15 @@ export async function getMyProfile(): Promise<PersonResponse> {
 }
 
 export interface PersonUpdate {
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  birth_date?: string;
-  gender?: string;
-  code_department?: string;
-  code_city?: string;
-  phone?: string;
-  address?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  birth_date?: string | null;
+  gender?: string | null;
+  code_department?: string | null;
+  code_city?: string | null;
+  phone?: string | null;
+  address?: string | null;
 }
 
 // ── Actualizar datos personales ───────────────────────────
