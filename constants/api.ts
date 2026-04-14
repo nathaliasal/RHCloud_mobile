@@ -1,5 +1,13 @@
-// ── API Configuration ─────────────────────────────────────
-export const API_BASE_URL = 'http://rh-cloud-51.38.33.160.traefik.me';
+const DEFAULT_API_BASE_URL = 'https://dev.stalch.com';
+
+function normalizeBaseUrl(value?: string): string {
+  return (value?.trim() || DEFAULT_API_BASE_URL).replace(/\/+$/, '');
+}
+
+export const API_BASE_URL = normalizeBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL);
+export const WS_BASE_URL = normalizeBaseUrl(process.env.EXPO_PUBLIC_WS_BASE_URL)
+  .replace(/^http:\/\//i, 'ws://')
+  .replace(/^https:\/\//i, 'wss://');
 
 export const ENDPOINTS = {
   auth: {
@@ -34,5 +42,11 @@ export const ENDPOINTS = {
   contracts: {
     filtered: `${API_BASE_URL}/api/v1/contracts/filtered`,
     schedules: `${API_BASE_URL}/api/v1/schedules/contract`,
+  },
+  notifications: {
+    mine: `${API_BASE_URL}/api/v1/notifications/me`,
+    unreadCount: `${API_BASE_URL}/api/v1/notifications/me/unread-count`,
+    markRead: `${API_BASE_URL}/api/v1/notifications`,
+    realtimeHealth: `${API_BASE_URL}/api/v1/notifications/health/realtime`,
   },
 } as const;
