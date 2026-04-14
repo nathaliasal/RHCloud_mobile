@@ -344,7 +344,11 @@ export default function CompleteProfileScreen() {
   });
 
   const docTypeOptions = useMemo(
-    () => (docTypesRaw ?? ['CC', 'CE', 'NIT']).map((value) => ({ value, label: value })),
+    () =>
+      (docTypesRaw ?? ['CC', 'CE', 'NIT']).map((value) => ({
+        value: value as DocumentType,
+        label: value,
+      })),
     [docTypesRaw]
   );
 

@@ -1,27 +1,31 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  ActivityIndicator,
+  Dimensions,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
-  Platform,
-  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { formatDistanceToNow, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
   Easing,
   runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
+import { markNotificationAsRead, NotificationRecord } from '@/services/notifications';
+import { useNotificationsStore } from '@/stores/notifications';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SIDEBAR_W = Math.min(SCREEN_W * 0.82, 340);
 
-// ── Palette ───────────────────────────────────────────────
 const C = {
   bg: '#07101F',
   panel: '#0D1B2E',
@@ -34,9 +38,9 @@ const C = {
   backdrop: 'rgba(0,0,0,0.60)',
   badgeBg: '#00E5CC',
   badgeText: '#07101F',
+  error: '#FF6B6B',
 };
 
-// ── Font helpers ──────────────────────────────────────────
 const F = Platform.select({
   ios: {
     bold: 'AvenirNext-Bold',
@@ -50,17 +54,7 @@ const F = Platform.select({
   },
 });
 
-// ── Notification types ────────────────────────────────────
 type NotifType = 'approved' | 'pending' | 'rejected' | 'info' | 'schedule';
-
-interface Notification {
-  id: string;
-  type: NotifType;
-  title: string;
-  body: string;
-  time: string;
-  read: boolean;
-}
 
 const TYPE_META: Record<NotifType, { color: string; bg: string; icon: string }> = {
   approved: {
@@ -90,77 +84,261 @@ const TYPE_META: Record<NotifType, { color: string; bg: string; icon: string }> 
   },
 };
 
-// ── Mock data ─────────────────────────────────────────────
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: '1',
-    type: 'approved',
-    title: 'Permiso aprobado',
-    body: 'Tu solicitud de permiso del 10 al 12 de abril fue aprobada.',
-    time: 'Hace 2 horas',
-    read: false,
-  },
-  {
-    id: '2',
-    type: 'pending',
-    title: 'Solicitud en revisión',
-    body: 'Tu solicitud de vacaciones del 20 al 28 de abril está siendo revisada.',
-    time: 'Hace 5 horas',
-    read: false,
-  },
-  {
-    id: '3',
-    type: 'schedule',
-    title: 'Horario actualizado',
-    body: 'Tu turno del jueves 10 fue cambiado de 08:00 a 06:00 AM.',
-    time: 'Ayer',
-    read: false,
-  },
-  {
-    id: '4',
-    type: 'info',
-    title: 'Contrato renovado',
-    body: 'Tu contrato fue renovado hasta el 31 de diciembre de 2026.',
-    time: 'Hace 2 días',
-    read: true,
-  },
-  {
-    id: '5',
-    type: 'rejected',
-    title: 'Permiso rechazado',
-    body: 'Tu solicitud de permiso del 3 de abril fue rechazada por tu supervisor.',
-    time: 'Hace 3 días',
-    read: true,
-  },
-  {
-    id: '6',
-    type: 'info',
-    title: 'Nuevo documento disponible',
-    body: 'Tu desprendible de nómina de marzo ya está disponible.',
-    time: 'Hace 5 días',
-    read: true,
-  },
-];
+function resolveNotificationType(notification: NotificationRecord): NotifType {
+  const lookup = [
+    notification.event_type,
+    notification.status,
+    notification.title,
+    notification.message,
+  ]
+    .join(' ')
+    .toLowerCase();
 
-const UNREAD_COUNT = MOCK_NOTIFICATIONS.filter((n) => !n.read).length;
+  if (lookup.includes('rechaz')) return 'rejected';
+  if (lookup.includes('aprob')) return 'approved';
+  if (lookup.includes('pend')) return 'pending';
+  if (
+    lookup.includes('schedule') ||
+    lookup.includes('horario') ||
+    lookup.includes('turno')
+  ) {
+    return 'schedule';
+  }
 
-// ── Bell icon (SVG-less, drawn with Unicode + styles) ─────
+  return 'info';
+}
+
+function formatNotificationTime(createdAt: string): string {
+  try {
+    return formatDistanceToNow(parseISO(createdAt), {
+      addSuffix: true,
+      locale: es,
+    });
+  } catch {
+    return 'Hace un momento';
+  }
+}
+
+function realtimeLabel(status: ReturnType<typeof useNotificationsStore.getState>['realtimeStatus']) {
+  switch (status) {
+    case 'connected':
+      return 'Tiempo real activo';
+    case 'connecting':
+      return 'Conectando realtime';
+    case 'reconnecting':
+      return 'Reconectando realtime';
+    case 'error':
+      return 'Realtime con incidencia';
+    default:
+      return 'Realtime inactivo';
+  }
+}
+
 export function BellButton({ onPress }: { onPress: () => void }) {
+  const unreadCount = useNotificationsStore((state) => state.unreadCount);
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={bellStyles.wrap}
-      activeOpacity={0.7}
-    >
+    <TouchableOpacity onPress={onPress} style={bellStyles.wrap} activeOpacity={0.7}>
       <Text style={bellStyles.icon}>🔔</Text>
-      {UNREAD_COUNT > 0 && (
+      {unreadCount > 0 && (
         <View style={bellStyles.badge}>
-          <Text style={bellStyles.badgeText}>
-            {UNREAD_COUNT > 9 ? '9+' : UNREAD_COUNT}
-          </Text>
+          <Text style={bellStyles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
         </View>
       )}
     </TouchableOpacity>
+  );
+}
+
+function NotifItem({
+  notif,
+  onPress,
+  loading,
+}: {
+  notif: NotificationRecord;
+  onPress: () => void;
+  loading: boolean;
+}) {
+  const meta = TYPE_META[resolveNotificationType(notif)];
+
+  return (
+    <TouchableOpacity
+      style={[itemStyles.wrap, notif.is_read && itemStyles.wrapRead]}
+      activeOpacity={0.78}
+      onPress={onPress}
+      disabled={notif.is_read || loading}
+    >
+      <View style={[itemStyles.iconWrap, { backgroundColor: meta.bg }]}>
+        <Text style={itemStyles.icon}>{meta.icon}</Text>
+      </View>
+      <View style={itemStyles.body}>
+        <View style={itemStyles.titleRow}>
+          <Text
+            style={[itemStyles.title, { color: notif.is_read ? C.muted : C.text }]}
+            numberOfLines={1}
+          >
+            {notif.title}
+          </Text>
+          {!notif.is_read && (
+            <View style={[itemStyles.unreadDot, { backgroundColor: meta.color }]} />
+          )}
+        </View>
+        <Text style={itemStyles.bodyText} numberOfLines={2}>
+          {notif.message}
+        </Text>
+        <View style={itemStyles.footerRow}>
+          <Text style={[itemStyles.time, { color: meta.color }]}>
+            {formatNotificationTime(notif.created_at)}
+          </Text>
+          {!notif.is_read && (
+            <Text style={itemStyles.markHint}>{loading ? 'Guardando...' : 'Toca para leer'}</Text>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+interface NotificationSidebarProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+export default function NotificationSidebar({
+  visible,
+  onClose,
+}: NotificationSidebarProps) {
+  const items = useNotificationsStore((state) => state.items);
+  const unreadCount = useNotificationsStore((state) => state.unreadCount);
+  const loading = useNotificationsStore((state) => state.loading);
+  const initialized = useNotificationsStore((state) => state.initialized);
+  const error = useNotificationsStore((state) => state.error);
+  const realtimeStatus = useNotificationsStore((state) => state.realtimeStatus);
+  const markAsReadLocal = useNotificationsStore((state) => state.markAsReadLocal);
+
+  const [pendingReadId, setPendingReadId] = useState<number | null>(null);
+
+  const translateX = useSharedValue(SIDEBAR_W);
+  const backdropOpacity = useSharedValue(0);
+
+  const close = (callback?: () => void) => {
+    translateX.value = withTiming(
+      SIDEBAR_W,
+      { duration: 280, easing: Easing.in(Easing.cubic) },
+      (finished) => {
+        if (finished && callback) runOnJS(callback)();
+      },
+    );
+    backdropOpacity.value = withTiming(0, { duration: 260 });
+  };
+
+  useEffect(() => {
+    if (visible) {
+      translateX.value = withTiming(0, {
+        duration: 320,
+        easing: Easing.out(Easing.cubic),
+      });
+      backdropOpacity.value = withTiming(1, { duration: 300 });
+    }
+  }, [backdropOpacity, translateX, visible]);
+
+  const handleClose = () => {
+    close(onClose);
+  };
+
+  const handleNotificationPress = async (notification: NotificationRecord) => {
+    if (notification.is_read || pendingReadId === notification.id) return;
+
+    setPendingReadId(notification.id);
+    try {
+      await markNotificationAsRead(notification.id);
+      markAsReadLocal(notification.id);
+    } catch (readError) {
+      console.warn('[Notifications] mark as read failed', readError);
+    } finally {
+      setPendingReadId((current) => (current === notification.id ? null : current));
+    }
+  };
+
+  const panelStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+
+  if (!visible) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+    >
+      <View style={styles.container}>
+        <Animated.View style={[styles.backdrop, backdropStyle]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+        </Animated.View>
+
+        <Animated.View style={[styles.panel, panelStyle]}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerIcon}>🔔</Text>
+              <View>
+                <Text style={styles.headerTitle}>Notificaciones</Text>
+                <Text style={styles.headerSub}>{realtimeLabel(realtimeStatus)}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={handleClose} style={styles.closeBtn} activeOpacity={0.7}>
+              <Text style={styles.closeBtnText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.summaryBar}>
+            <View style={styles.summaryDot} />
+            <Text style={styles.summaryText}>
+              {unreadCount > 0 ? `${unreadCount} sin leer` : 'Todo al dia'}
+            </Text>
+            <Text style={styles.summaryHint}>Toca una notificacion para marcarla</Text>
+          </View>
+
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          <ScrollView
+            style={styles.list}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+          >
+            {loading && !initialized ? (
+              <View style={styles.centerState}>
+                <ActivityIndicator size="small" color={C.accent} />
+                <Text style={styles.stateText}>Cargando notificaciones...</Text>
+              </View>
+            ) : items.length === 0 ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyIcon}>🔕</Text>
+                <Text style={styles.emptyTitle}>Sin notificaciones</Text>
+              </View>
+            ) : (
+              items.map((notif) => (
+                <NotifItem
+                  key={notif.id}
+                  notif={notif}
+                  loading={pendingReadId === notif.id}
+                  onPress={() => void handleNotificationPress(notif)}
+                />
+              ))
+            )}
+          </ScrollView>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
@@ -199,35 +377,6 @@ const bellStyles = StyleSheet.create({
     fontFamily: F?.bold,
   },
 });
-
-// ── Notification Item ─────────────────────────────────────
-function NotifItem({ notif }: { notif: Notification }) {
-  const meta = TYPE_META[notif.type];
-  return (
-    <View style={[itemStyles.wrap, notif.read && itemStyles.wrapRead]}>
-      <View style={[itemStyles.iconWrap, { backgroundColor: meta.bg }]}>
-        <Text style={itemStyles.icon}>{meta.icon}</Text>
-      </View>
-      <View style={itemStyles.body}>
-        <View style={itemStyles.titleRow}>
-          <Text
-            style={[itemStyles.title, { color: notif.read ? C.muted : C.text }]}
-            numberOfLines={1}
-          >
-            {notif.title}
-          </Text>
-          {!notif.read && (
-            <View style={[itemStyles.unreadDot, { backgroundColor: meta.color }]} />
-          )}
-        </View>
-        <Text style={itemStyles.bodyText} numberOfLines={2}>
-          {notif.body}
-        </Text>
-        <Text style={[itemStyles.time, { color: meta.color }]}>{notif.time}</Text>
-      </View>
-    </View>
-  );
-}
 
 const itemStyles = StyleSheet.create({
   wrap: {
@@ -283,136 +432,24 @@ const itemStyles = StyleSheet.create({
     fontFamily: F?.regular,
     marginBottom: 5,
   },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   time: {
     fontSize: 11,
     fontWeight: '600',
     fontFamily: F?.demi,
   },
+  markHint: {
+    fontSize: 10.5,
+    color: C.muted,
+    fontFamily: F?.regular,
+  },
 });
 
-// ── Main Sidebar Component ────────────────────────────────
-interface NotificationSidebarProps {
-  visible: boolean;
-  onClose: () => void;
-}
-
-export default function NotificationSidebar({
-  visible,
-  onClose,
-}: NotificationSidebarProps) {
-  const translateX = useSharedValue(SIDEBAR_W);
-  const backdropOpacity = useSharedValue(0);
-
-  const open = () => {
-    translateX.value = withTiming(0, {
-      duration: 320,
-      easing: Easing.out(Easing.cubic),
-    });
-    backdropOpacity.value = withTiming(1, { duration: 300 });
-  };
-
-  const close = (callback?: () => void) => {
-    translateX.value = withTiming(
-      SIDEBAR_W,
-      { duration: 280, easing: Easing.in(Easing.cubic) },
-      (finished) => {
-        if (finished && callback) runOnJS(callback)();
-      }
-    );
-    backdropOpacity.value = withTiming(0, { duration: 260 });
-  };
-
-  useEffect(() => {
-    if (visible) {
-      open();
-    }
-  }, [visible]);
-
-  const handleClose = () => {
-    close(onClose);
-  };
-
-  const panelStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value,
-  }));
-
-  if (!visible) return null;
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={handleClose}
-    >
-      <View style={styles.container}>
-        {/* Backdrop */}
-        <Animated.View style={[styles.backdrop, backdropStyle]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
-        </Animated.View>
-
-        {/* Panel */}
-        <Animated.View style={[styles.panel, panelStyle]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.headerIcon}>🔔</Text>
-              <Text style={styles.headerTitle}>Notificaciones</Text>
-            </View>
-            <TouchableOpacity
-              onPress={handleClose}
-              style={styles.closeBtn}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.closeBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Unread summary */}
-          {UNREAD_COUNT > 0 && (
-            <View style={styles.summaryBar}>
-              <View style={styles.summaryDot} />
-              <Text style={styles.summaryText}>
-                {UNREAD_COUNT} sin leer
-              </Text>
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.markAllText}>Marcar todas como leídas</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* List */}
-          <ScrollView
-            style={styles.list}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-          >
-            {MOCK_NOTIFICATIONS.length === 0 ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyIcon}>🔕</Text>
-                <Text style={styles.emptyTitle}>Sin notificaciones</Text>
-                <Text style={styles.emptyBody}>
-                  Cuando tengas notificaciones aparecerán aquí.
-                </Text>
-              </View>
-            ) : (
-              MOCK_NOTIFICATIONS.map((notif) => (
-                <NotifItem key={notif.id} notif={notif} />
-              ))
-            )}
-          </ScrollView>
-        </Animated.View>
-      </View>
-    </Modal>
-  );
-}
-
-// ── Styles ────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -435,8 +472,6 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 20,
   },
-
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -462,6 +497,12 @@ const styles = StyleSheet.create({
     fontFamily: F?.bold,
     letterSpacing: -0.3,
   },
+  headerSub: {
+    fontSize: 11,
+    color: C.muted,
+    fontFamily: F?.regular,
+    marginTop: 2,
+  },
   closeBtn: {
     width: 32,
     height: 32,
@@ -475,12 +516,7 @@ const styles = StyleSheet.create({
     color: C.muted,
     fontWeight: '700',
   },
-
-  // Summary bar
   summaryBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
@@ -491,30 +527,53 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 3.5,
     backgroundColor: C.accent,
+    marginBottom: 6,
   },
   summaryText: {
     fontSize: 12,
     color: C.accent,
     fontWeight: '600',
     fontFamily: F?.demi,
-    flex: 1,
+    marginBottom: 2,
   },
-  markAllText: {
+  summaryHint: {
     fontSize: 11,
     color: C.muted,
     fontFamily: F?.regular,
-    textDecorationLine: 'underline',
   },
-
-  // List
+  errorBox: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: 'rgba(255,107,107,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.35)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  errorText: {
+    color: C.error,
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: F?.regular,
+  },
   list: {
     flex: 1,
   },
   listContent: {
     paddingBottom: 40,
   },
-
-  // Empty
+  centerState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 52,
+    gap: 12,
+  },
+  stateText: {
+    fontSize: 13,
+    color: C.muted,
+    fontFamily: F?.regular,
+  },
   empty: {
     alignItems: 'center',
     paddingTop: 60,

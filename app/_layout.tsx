@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getMe } from '@/services/auth';
+import NotificationsBootstrap from '@/components/notifications-bootstrap';
 import { useAuthStore } from '@/stores/auth';
 
 const queryClient = new QueryClient({
@@ -29,7 +30,7 @@ function AuthInit() {
     getMe().then(setUser).catch(() => {
       // Sin tokens o sesión expirada — el store queda en null
     });
-  }, []);
+  }, [setUser]);
 
   return null;
 }
@@ -41,6 +42,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthInit />
+        <NotificationsBootstrap />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="complete-profile" options={{ headerShown: false }} />
