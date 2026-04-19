@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,9 @@ import Animated, {
   Easing,
   interpolate,
 } from 'react-native-reanimated';
+import NotificationSidebar, { BellButton } from '@/components/notification-sidebar';
+import { AppIcon } from '@/components/ui/app-icon';
+import { IconName } from '@/constants/icons';
 
 const { width } = Dimensions.get('window');
 
@@ -50,9 +53,16 @@ const F = Platform.select({
 });
 
 // ── Feature data ──────────────────────────────────────────
-const FEATURES = [
+const FEATURES: {
+  icon: IconName;
+  title: string;
+  description: string;
+  accent: string;
+  bg: string;
+  border: string;
+}[] = [
   {
-    emoji: '📋',
+    icon: 'featureContracts',
     title: 'Contratos',
     description:
       'Consulta y revisa tus contratos laborales vigentes en cualquier momento y desde cualquier lugar.',
@@ -61,7 +71,7 @@ const FEATURES = [
     border: 'rgba(0,229,204,0.28)',
   },
   {
-    emoji: '🕐',
+    icon: 'featureSchedule',
     title: 'Horarios',
     description:
       'Accede al calendario de turnos y horarios de cada contrato siempre actualizado en tiempo real.',
@@ -70,7 +80,7 @@ const FEATURES = [
     border: 'rgba(79,195,247,0.28)',
   },
   {
-    emoji: '🌴',
+    icon: 'featureLeave',
     title: 'Permisos y Vacaciones',
     description:
       'Solicita días de permiso o vacaciones directamente desde la app y haz seguimiento de su estado.',
@@ -79,7 +89,7 @@ const FEATURES = [
     border: 'rgba(110,231,183,0.28)',
   },
   {
-    emoji: '🔔',
+    icon: 'featureNotifs',
     title: 'Notificaciones',
     description:
       'Recibe alertas en tiempo real sobre contratos, horarios y el estado de todas tus solicitudes.',
@@ -123,7 +133,7 @@ function FeatureCard({
       ]}
     >
       <View style={[styles.cardIconWrap, { backgroundColor: item.bg }]}>
-        <Text style={styles.cardEmoji}>{item.emoji}</Text>
+        <AppIcon name={item.icon} size={26} color={item.accent} />
       </View>
       <View style={styles.cardBody}>
         <Text style={[styles.cardTitle, { color: item.accent }]}>
@@ -137,6 +147,7 @@ function FeatureCard({
 
 // ── Home / Welcome Tab ────────────────────────────────────
 export default function HomeScreen() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const heroOpacity = useSharedValue(0);
   const heroY = useSharedValue(-18);
   const logoScale = useSharedValue(0.75);
@@ -182,6 +193,17 @@ export default function HomeScreen() {
       <View style={styles.orb1} />
       <View style={styles.orb2} />
       <View style={styles.orb3} />
+
+      {/* Bell button ── top-right floating */}
+      <View style={styles.bellWrap}>
+        <BellButton onPress={() => setSidebarOpen(true)} />
+      </View>
+
+      {/* Notification Sidebar */}
+      <NotificationSidebar
+        visible={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -260,6 +282,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,229,204,0.06)',
     bottom: 40,
     right: -40,
+  },
+  bellWrap: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 56 : 42,
+    right: 22,
+    zIndex: 10,
   },
   scroll: { flex: 1 },
   scrollContent: {
@@ -384,9 +412,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  cardEmoji: {
-    fontSize: 25,
   },
   cardBody: {
     flex: 1,
