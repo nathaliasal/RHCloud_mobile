@@ -1,5 +1,5 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AppIcon } from '@/components/ui/app-icon';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -79,7 +79,7 @@ function VacationCard({ item, onEdit }: { item: Vacation; onEdit: () => void }) 
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.cardDates}>
-          <MaterialIcons name="beach-access" size={15} color={C.accent} />
+          <AppIcon name="tabVacations" size={15} color={C.accent} />
           <Text style={styles.cardDateText}>
             {formatDate(item.start_date)} → {formatDate(item.end_date)}
           </Text>
@@ -90,7 +90,7 @@ function VacationCard({ item, onEdit }: { item: Vacation; onEdit: () => void }) 
           </View>
           {item.response_status === 'pendiente' && (
             <TouchableOpacity onPress={onEdit} hitSlop={10} style={styles.editBtn}>
-              <MaterialIcons name="edit" size={16} color={C.muted} />
+              <AppIcon name="edit" size={16} color={C.muted} />
             </TouchableOpacity>
           )}
         </View>
@@ -201,7 +201,7 @@ function CreateVacationModal({ visible, employeeId, onClose }: CreateModalProps)
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Solicitar vacaciones</Text>
             <TouchableOpacity onPress={handleClose} hitSlop={12}>
-              <MaterialIcons name="close" size={22} color={C.muted} />
+              <AppIcon name="close" size={22} color={C.muted} />
             </TouchableOpacity>
           </View>
 
@@ -216,7 +216,7 @@ function CreateVacationModal({ visible, employeeId, onClose }: CreateModalProps)
             <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.fieldLabel}>Fecha de inicio *</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('start')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !startDate && { color: C.muted }]}>
                   {startDate ? formatDate(startDate) : 'Seleccionar'}
                 </Text>
@@ -224,7 +224,7 @@ function CreateVacationModal({ visible, employeeId, onClose }: CreateModalProps)
 
               <Text style={styles.fieldLabel}>Fecha de fin *</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('end')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !endDate && { color: C.muted }]}>
                   {endDate ? formatDate(endDate) : 'Seleccionar'}
                 </Text>
@@ -317,7 +317,7 @@ function EditVacationModal({ item, employeeId, onClose }: EditModalProps) {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Editar vacaciones</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <MaterialIcons name="close" size={22} color={C.muted} />
+              <AppIcon name="close" size={22} color={C.muted} />
             </TouchableOpacity>
           </View>
 
@@ -332,7 +332,7 @@ function EditVacationModal({ item, employeeId, onClose }: EditModalProps) {
             <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.fieldLabel}>Fecha de inicio *</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('start')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !startDate && { color: C.muted }]}>
                   {startDate ? formatDate(startDate) : 'Seleccionar'}
                 </Text>
@@ -340,7 +340,7 @@ function EditVacationModal({ item, employeeId, onClose }: EditModalProps) {
 
               <Text style={styles.fieldLabel}>Fecha de fin *</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('end')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !endDate && { color: C.muted }]}>
                   {endDate ? formatDate(endDate) : 'Seleccionar'}
                 </Text>
@@ -395,7 +395,7 @@ function VacacionesContent({ employeeId }: { employeeId: number }) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Vacaciones</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => setCreateVisible(true)}>
-          <MaterialIcons name="add" size={22} color={C.bg} />
+          <AppIcon name="add" size={22} color={C.bg} />
         </TouchableOpacity>
       </View>
 
@@ -407,7 +407,7 @@ function VacacionesContent({ employeeId }: { employeeId: number }) {
 
       {isError && (
         <View style={styles.centered}>
-          <MaterialIcons name="wifi-off" size={40} color={C.muted} />
+          <AppIcon name="wifiOff" size={40} color={C.muted} />
           <Text style={styles.emptyText}>No se pudieron cargar las vacaciones</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
             <Text style={styles.retryText}>Reintentar</Text>
@@ -434,7 +434,7 @@ function VacacionesContent({ employeeId }: { employeeId: number }) {
           }
           ListEmptyComponent={
             <View style={styles.centered}>
-              <MaterialIcons name="beach-access" size={48} color={C.muted} />
+              <AppIcon name="tabVacations" size={48} color={C.muted} />
               <Text style={styles.emptyText}>No tienes solicitudes de vacaciones</Text>
               <Text style={styles.emptySubtext}>Pulsa + para solicitar</Text>
             </View>
@@ -464,7 +464,7 @@ export default function VacacionesScreen() {
   if (!user.id_employee) {
     return (
       <View style={[styles.root, styles.centered]}>
-        <MaterialIcons name="person-off" size={40} color={C.muted} />
+        <AppIcon name="personOff" size={40} color={C.muted} />
         <Text style={styles.emptyText}>Sin empleado vinculado</Text>
         <Text style={styles.emptySubtext}>Tu cuenta no está asociada a un empleado.</Text>
       </View>

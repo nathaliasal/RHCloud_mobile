@@ -19,6 +19,8 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import NotificationSidebar, { BellButton } from '@/components/notification-sidebar';
+import { AppIcon } from '@/components/ui/app-icon';
+import { IconName } from '@/constants/icons';
 
 const { width } = Dimensions.get('window');
 
@@ -51,9 +53,16 @@ const F = Platform.select({
 });
 
 // ── Feature data ──────────────────────────────────────────
-const FEATURES = [
+const FEATURES: {
+  icon: IconName;
+  title: string;
+  description: string;
+  accent: string;
+  bg: string;
+  border: string;
+}[] = [
   {
-    emoji: '📋',
+    icon: 'featureContracts',
     title: 'Contratos',
     description:
       'Consulta y revisa tus contratos laborales vigentes en cualquier momento y desde cualquier lugar.',
@@ -62,7 +71,7 @@ const FEATURES = [
     border: 'rgba(0,229,204,0.28)',
   },
   {
-    emoji: '🕐',
+    icon: 'featureSchedule',
     title: 'Horarios',
     description:
       'Accede al calendario de turnos y horarios de cada contrato siempre actualizado en tiempo real.',
@@ -71,7 +80,7 @@ const FEATURES = [
     border: 'rgba(79,195,247,0.28)',
   },
   {
-    emoji: '🌴',
+    icon: 'featureLeave',
     title: 'Permisos y Vacaciones',
     description:
       'Solicita días de permiso o vacaciones directamente desde la app y haz seguimiento de su estado.',
@@ -80,7 +89,7 @@ const FEATURES = [
     border: 'rgba(110,231,183,0.28)',
   },
   {
-    emoji: '🔔',
+    icon: 'featureNotifs',
     title: 'Notificaciones',
     description:
       'Recibe alertas en tiempo real sobre contratos, horarios y el estado de todas tus solicitudes.',
@@ -124,7 +133,7 @@ function FeatureCard({
       ]}
     >
       <View style={[styles.cardIconWrap, { backgroundColor: item.bg }]}>
-        <Text style={styles.cardEmoji}>{item.emoji}</Text>
+        <AppIcon name={item.icon} size={26} color={item.accent} />
       </View>
       <View style={styles.cardBody}>
         <Text style={[styles.cardTitle, { color: item.accent }]}>
@@ -403,9 +412,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  cardEmoji: {
-    fontSize: 25,
   },
   cardBody: {
     flex: 1,

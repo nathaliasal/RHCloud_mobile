@@ -1,5 +1,5 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AppIcon } from '@/components/ui/app-icon';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -87,13 +87,13 @@ function PermissionCard({ item, onEdit }: { item: Permission; onEdit: () => void
           </View>
           {item.response_status === 'pendiente' && (
             <TouchableOpacity onPress={onEdit} hitSlop={10} style={styles.editBtn}>
-              <MaterialIcons name="edit" size={16} color={C.muted} />
+              <AppIcon name="edit" size={16} color={C.muted} />
             </TouchableOpacity>
           )}
         </View>
       </View>
       <View style={styles.cardDates}>
-        <MaterialIcons name="date-range" size={14} color={C.muted} />
+        <AppIcon name="calendarRange" size={14} color={C.muted} />
         <Text style={styles.cardDateText}>
           {formatDate(item.start_date)} → {formatDate(item.end_date)}
         </Text>
@@ -210,7 +210,7 @@ function CreatePermissionModal({ visible, employeeId, userId, onClose }: CreateM
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Solicitar permiso</Text>
             <TouchableOpacity onPress={handleClose} hitSlop={12}>
-              <MaterialIcons name="close" size={22} color={C.muted} />
+              <AppIcon name="close" size={22} color={C.muted} />
             </TouchableOpacity>
           </View>
 
@@ -225,7 +225,7 @@ function CreatePermissionModal({ visible, employeeId, userId, onClose }: CreateM
             <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.fieldLabel}>Fecha de inicio *</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('start')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !startDate && { color: C.muted }]}>
                   {startDate ? formatDate(startDate) : 'Seleccionar'}
                 </Text>
@@ -233,7 +233,7 @@ function CreatePermissionModal({ visible, employeeId, userId, onClose }: CreateM
 
               <Text style={styles.fieldLabel}>Fecha de fin *</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('end')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !endDate && { color: C.muted }]}>
                   {endDate ? formatDate(endDate) : 'Seleccionar'}
                 </Text>
@@ -343,7 +343,7 @@ function EditPermissionModal({ item, employeeId, onClose }: EditModalProps) {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Editar permiso</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <MaterialIcons name="close" size={22} color={C.muted} />
+              <AppIcon name="close" size={22} color={C.muted} />
             </TouchableOpacity>
           </View>
 
@@ -358,7 +358,7 @@ function EditPermissionModal({ item, employeeId, onClose }: EditModalProps) {
             <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.fieldLabel}>Fecha de inicio *</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('start')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !startDate && { color: C.muted }]}>
                   {startDate ? formatDate(startDate) : 'Seleccionar'}
                 </Text>
@@ -366,7 +366,7 @@ function EditPermissionModal({ item, employeeId, onClose }: EditModalProps) {
 
               <Text style={styles.fieldLabel}>Fecha de fin *</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('end')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !endDate && { color: C.muted }]}>
                   {endDate ? formatDate(endDate) : 'Seleccionar'}
                 </Text>
@@ -438,7 +438,7 @@ function PermisosContent({ employeeId, userId }: { employeeId: number; userId: n
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Permisos</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => setCreateVisible(true)}>
-          <MaterialIcons name="add" size={22} color={C.bg} />
+          <AppIcon name="add" size={22} color={C.bg} />
         </TouchableOpacity>
       </View>
 
@@ -450,7 +450,7 @@ function PermisosContent({ employeeId, userId }: { employeeId: number; userId: n
 
       {isError && (
         <View style={styles.centered}>
-          <MaterialIcons name="wifi-off" size={40} color={C.muted} />
+          <AppIcon name="wifiOff" size={40} color={C.muted} />
           <Text style={styles.emptyText}>No se pudieron cargar los permisos</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
             <Text style={styles.retryText}>Reintentar</Text>
@@ -477,7 +477,7 @@ function PermisosContent({ employeeId, userId }: { employeeId: number; userId: n
           }
           ListEmptyComponent={
             <View style={styles.centered}>
-              <MaterialIcons name="event-available" size={48} color={C.muted} />
+              <AppIcon name="leaveAvailable" size={48} color={C.muted} />
               <Text style={styles.emptyText}>No tienes permisos registrados</Text>
               <Text style={styles.emptySubtext}>Pulsa + para solicitar uno</Text>
             </View>
@@ -508,7 +508,7 @@ export default function PermisosScreen() {
   if (!user.id_employee) {
     return (
       <View style={[styles.root, styles.centered]}>
-        <MaterialIcons name="person-off" size={40} color={C.muted} />
+        <AppIcon name="personOff" size={40} color={C.muted} />
         <Text style={styles.emptyText}>Sin empleado vinculado</Text>
         <Text style={styles.emptySubtext}>Tu cuenta no está asociada a un empleado.</Text>
       </View>

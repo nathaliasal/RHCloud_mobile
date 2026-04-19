@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/stores/auth';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { AppIcon } from '@/components/ui/app-icon';
+import { IconName } from '@/constants/icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect } from 'react';
@@ -41,14 +42,12 @@ const BUBBLE_SIZE = 58;
 const BUBBLE_TOP = -18; // Esto hace que "salte" hacia afuera de la barra
 
 // ── Tab config ───────────────────────────────────────────────
-type MatIcon = React.ComponentProps<typeof MaterialIcons>['name'];
-
-const TABS: { route: string; label: string; icon: MatIcon }[] = [
-  { route: 'contratos', label: 'Contratos', icon: 'description' },
-  { route: 'permisos', label: 'Permisos', icon: 'event-available' },
-  { route: 'index', label: 'Inicio', icon: 'home' },
-  { route: 'vacaciones', label: 'Vacaciones', icon: 'beach-access' },
-  { route: 'profile', label: 'Perfil', icon: 'person' },
+const TABS: { route: string; label: string; icon: IconName }[] = [
+  { route: 'contratos',  label: 'Contratos',  icon: 'tabContracts'   },
+  { route: 'permisos',   label: 'Permisos',   icon: 'tabPermissions' },
+  { route: 'index',      label: 'Inicio',     icon: 'tabHome'        },
+  { route: 'vacaciones', label: 'Vacaciones', icon: 'tabVacations'   },
+  { route: 'profile',    label: 'Perfil',     icon: 'tabProfile'     },
 ];
 
 const PROTECTED = new Set(['contratos', 'permisos', 'vacaciones', 'profile']);
@@ -121,7 +120,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             >
               {/* El wrap ahora solo envuelve al ícono para animarlo solo a él */}
               <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
-                <MaterialIcons
+                <AppIcon
                   name={tab.icon}
                   size={26}
                   color={active ? C.tabBar : C.muted}

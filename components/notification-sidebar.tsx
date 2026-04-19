@@ -22,6 +22,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { markNotificationAsRead, NotificationRecord } from '@/services/notifications';
 import { useNotificationsStore } from '@/stores/notifications';
+import { AppIcon } from '@/components/ui/app-icon';
+import { IconName } from '@/constants/icons';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const SIDEBAR_W = Math.min(SCREEN_W * 0.82, 340);
@@ -56,31 +58,31 @@ const F = Platform.select({
 
 type NotifType = 'approved' | 'pending' | 'rejected' | 'info' | 'schedule';
 
-const TYPE_META: Record<NotifType, { color: string; bg: string; icon: string }> = {
+const TYPE_META: Record<NotifType, { color: string; bg: string; icon: IconName }> = {
   approved: {
     color: '#6EE7B7',
     bg: 'rgba(110,231,183,0.12)',
-    icon: '✅',
+    icon: 'approved',
   },
   pending: {
     color: '#FFB74D',
     bg: 'rgba(255,183,77,0.12)',
-    icon: '⏳',
+    icon: 'pending',
   },
   rejected: {
     color: '#FF6B6B',
     bg: 'rgba(255,107,107,0.12)',
-    icon: '❌',
+    icon: 'rejected',
   },
   info: {
     color: '#00E5CC',
     bg: 'rgba(0,229,204,0.12)',
-    icon: '📋',
+    icon: 'info',
   },
   schedule: {
     color: '#4FC3F7',
     bg: 'rgba(79,195,247,0.12)',
-    icon: '🗓️',
+    icon: 'schedule',
   },
 };
 
@@ -139,7 +141,7 @@ export function BellButton({ onPress }: { onPress: () => void }) {
 
   return (
     <TouchableOpacity onPress={onPress} style={bellStyles.wrap} activeOpacity={0.7}>
-      <Text style={bellStyles.icon}>🔔</Text>
+      <AppIcon name="bell" size={20} color={C.accent} />
       {unreadCount > 0 && (
         <View style={bellStyles.badge}>
           <Text style={bellStyles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -168,7 +170,7 @@ function NotifItem({
       disabled={notif.is_read || loading}
     >
       <View style={[itemStyles.iconWrap, { backgroundColor: meta.bg }]}>
-        <Text style={itemStyles.icon}>{meta.icon}</Text>
+        <AppIcon name={meta.icon} size={22} color={meta.color} />
       </View>
       <View style={itemStyles.body}>
         <View style={itemStyles.titleRow}>
@@ -285,14 +287,14 @@ export default function NotificationSidebar({
         <Animated.View style={[styles.panel, panelStyle]}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text style={styles.headerIcon}>🔔</Text>
+              <AppIcon name="bell" size={20} color={C.accent} />
               <View>
                 <Text style={styles.headerTitle}>Notificaciones</Text>
                 <Text style={styles.headerSub}>{realtimeLabel(realtimeStatus)}</Text>
               </View>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn} activeOpacity={0.7}>
-              <Text style={styles.closeBtnText}>✕</Text>
+              <AppIcon name="close" size={16} color={C.muted} />
             </TouchableOpacity>
           </View>
 
@@ -322,7 +324,7 @@ export default function NotificationSidebar({
               </View>
             ) : items.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyIcon}>🔕</Text>
+                <AppIcon name="bellOff" size={48} color={C.muted} />
                 <Text style={styles.emptyTitle}>Sin notificaciones</Text>
               </View>
             ) : (
@@ -352,9 +354,6 @@ const bellStyles = StyleSheet.create({
     backgroundColor: C.accentGlow,
     borderWidth: 1,
     borderColor: C.accentBorder,
-  },
-  icon: {
-    fontSize: 18,
   },
   badge: {
     position: 'absolute',
@@ -399,9 +398,6 @@ const itemStyles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
     marginTop: 2,
-  },
-  icon: {
-    fontSize: 20,
   },
   body: {
     flex: 1,
@@ -487,9 +483,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
   },
-  headerIcon: {
-    fontSize: 19,
-  },
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
@@ -510,11 +503,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(237,244,255,0.07)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  closeBtnText: {
-    fontSize: 13,
-    color: C.muted,
-    fontWeight: '700',
   },
   summaryBar: {
     paddingHorizontal: 16,
@@ -579,10 +567,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 24,
     gap: 12,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    opacity: 0.5,
   },
   emptyTitle: {
     fontSize: 16,

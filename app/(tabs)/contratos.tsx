@@ -1,5 +1,5 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useQuery } from '@tanstack/react-query';
+import { AppIcon } from '@/components/ui/app-icon';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -170,7 +170,7 @@ function ScheduleModal({ contract, onClose }: ScheduleModalProps) {
               )}
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <MaterialIcons name="close" size={22} color={C.muted} />
+              <AppIcon name="close" size={22} color={C.muted} />
             </TouchableOpacity>
           </View>
 
@@ -181,7 +181,7 @@ function ScheduleModal({ contract, onClose }: ScheduleModalProps) {
           )}
           {isError && (
             <View style={styles.modalCentered}>
-              <MaterialIcons name="wifi-off" size={36} color={C.muted} />
+              <AppIcon name="wifiOff" size={36} color={C.muted} />
               <Text style={styles.emptyText}>No se pudo cargar el horario</Text>
               <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
                 <Text style={styles.retryText}>Reintentar</Text>
@@ -191,7 +191,7 @@ function ScheduleModal({ contract, onClose }: ScheduleModalProps) {
           {!isLoading && !isError && (
             (data ?? []).length === 0 ? (
               <View style={styles.modalCentered}>
-                <MaterialIcons name="event-busy" size={40} color={C.muted} />
+                <AppIcon name="calendarBusy" size={40} color={C.muted} />
                 <Text style={styles.emptyText}>Sin horarios establecidos</Text>
               </View>
             ) : (
@@ -217,7 +217,7 @@ function ContractCard({ item, onViewSchedule }: ContractCardProps) {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.cardTitleRow}>
-          <MaterialIcons name="description" size={15} color={C.accent} />
+          <AppIcon name="contract" size={15} color={C.accent} />
           <Text style={styles.cardTitle} numberOfLines={2}>{item.contract_name}</Text>
         </View>
         <View style={[styles.statusBadge, { borderColor: color }]}>
@@ -239,7 +239,7 @@ function ContractCard({ item, onViewSchedule }: ContractCardProps) {
       <View style={styles.cardDivider} />
 
       <View style={styles.cardInfoRow}>
-        <MaterialIcons name="date-range" size={13} color={C.muted} />
+        <AppIcon name="calendarRange" size={13} color={C.muted} />
         <Text style={styles.cardMuted}>
           {formatDate(item.start_date)}
           {item.end_date ? ` → ${formatDate(item.end_date)}` : ''}
@@ -247,14 +247,14 @@ function ContractCard({ item, onViewSchedule }: ContractCardProps) {
       </View>
 
       <View style={styles.cardInfoRow}>
-        <MaterialIcons name="attach-money" size={13} color={C.muted} />
+        <AppIcon name="money" size={13} color={C.muted} />
         <Text style={styles.cardMuted}>Base: {formatSalary(item.salary_base)}</Text>
       </View>
 
       <TouchableOpacity style={styles.scheduleBtn} onPress={onViewSchedule}>
-        <MaterialIcons name="schedule" size={15} color={C.accent} />
+        <AppIcon name="clockTime" size={15} color={C.accent} />
         <Text style={styles.scheduleBtnText}>Ver horarios</Text>
-        <MaterialIcons name="chevron-right" size={16} color={C.accent} />
+        <AppIcon name="chevronRight" size={16} color={C.accent} />
       </TouchableOpacity>
     </View>
   );
@@ -315,7 +315,7 @@ function FilterModal({ visible, current, onApply, onClose }: FilterModalProps) {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Filtros</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <MaterialIcons name="close" size={22} color={C.muted} />
+              <AppIcon name="close" size={22} color={C.muted} />
             </TouchableOpacity>
           </View>
 
@@ -363,26 +363,26 @@ function FilterModal({ visible, current, onApply, onClose }: FilterModalProps) {
 
               <Text style={styles.fieldLabel}>Contratos desde</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('start')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !startDate && { color: C.muted }]}>
                   {startDate ? formatDate(startDate) : 'Sin filtro'}
                 </Text>
                 {!!startDate && (
                   <TouchableOpacity onPress={() => setStartDate('')} hitSlop={10}>
-                    <MaterialIcons name="close" size={16} color={C.muted} />
+                    <AppIcon name="close" size={16} color={C.muted} />
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
 
               <Text style={styles.fieldLabel}>Contratos hasta</Text>
               <TouchableOpacity style={styles.dateField} onPress={() => setCalTarget('end')}>
-                <MaterialIcons name="calendar-today" size={16} color={C.accent} />
+                <AppIcon name="calendarToday" size={16} color={C.accent} />
                 <Text style={[styles.dateFieldText, !endDate && { color: C.muted }]}>
                   {endDate ? formatDate(endDate) : 'Sin filtro'}
                 </Text>
                 {!!endDate && (
                   <TouchableOpacity onPress={() => setEndDate('')} hitSlop={10}>
-                    <MaterialIcons name="close" size={16} color={C.muted} />
+                    <AppIcon name="close" size={16} color={C.muted} />
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
@@ -435,7 +435,7 @@ function ContratosContent({ employeeId }: { employeeId: number }) {
           style={[styles.filterBtn, hasActiveFilters && styles.filterBtnActive]}
           onPress={() => setFilterVisible(true)}
         >
-          <MaterialIcons name="tune" size={20} color={hasActiveFilters ? C.bg : C.accent} />
+          <AppIcon name="filter" size={20} color={hasActiveFilters ? C.bg : C.accent} />
         </TouchableOpacity>
       </View>
 
@@ -447,7 +447,7 @@ function ContratosContent({ employeeId }: { employeeId: number }) {
 
       {isError && (
         <View style={styles.centered}>
-          <MaterialIcons name="wifi-off" size={40} color={C.muted} />
+          <AppIcon name="wifiOff" size={40} color={C.muted} />
           <Text style={styles.emptyText}>No se pudieron cargar los contratos</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
             <Text style={styles.retryText}>Reintentar</Text>
@@ -474,7 +474,7 @@ function ContratosContent({ employeeId }: { employeeId: number }) {
           }
           ListEmptyComponent={
             <View style={styles.centered}>
-              <MaterialIcons name="description" size={48} color={C.muted} />
+              <AppIcon name="contract" size={48} color={C.muted} />
               <Text style={styles.emptyText}>No tienes contratos registrados</Text>
               {hasActiveFilters && (
                 <Text style={styles.emptySubtext}>Prueba ajustando los filtros</Text>
@@ -506,7 +506,7 @@ export default function ContratosScreen() {
   if (!user.id_employee) {
     return (
       <View style={[styles.root, styles.centered]}>
-        <MaterialIcons name="person-off" size={40} color={C.muted} />
+        <AppIcon name="personOff" size={40} color={C.muted} />
         <Text style={styles.emptyText}>Sin empleado vinculado</Text>
         <Text style={styles.emptySubtext}>Tu cuenta no está asociada a un empleado.</Text>
       </View>
