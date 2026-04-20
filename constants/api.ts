@@ -29,13 +29,13 @@ export const ENDPOINTS = {
     updateProfile: `${API_BASE_URL}/api/v1/persons/me/profile`,
   },
   permissions: {
-    byEmployee: `${API_BASE_URL}/api/v1/permissions/employee`,
+    byContract: `${API_BASE_URL}/api/v1/permissions/contract`,
     create: `${API_BASE_URL}/api/v1/permissions/`,
     update: `${API_BASE_URL}/api/v1/permissions`,
     types: `${API_BASE_URL}/api/v1/permission_types/public`,
   },
   vacations: {
-    byEmployee: `${API_BASE_URL}/api/v1/vacations/employee`,
+    byContract: `${API_BASE_URL}/api/v1/vacations/contract`,
     create: `${API_BASE_URL}/api/v1/vacations/`,
     update: `${API_BASE_URL}/api/v1/vacations`,
   },

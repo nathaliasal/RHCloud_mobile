@@ -17,9 +17,10 @@ import {
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 
+import { getContracts, Contract } from '@/services/contracts';
 import {
   createPermission,
-  getEmployeePermissions,
+  getContractPermissions,
   getPermissionTypes,
   Permission,
   PermissionStatus,
@@ -71,6 +72,79 @@ function statusLabel(status: PermissionStatus): string {
   if (status === 'aprobado') return 'Aprobado';
   if (status === 'rechazado') return 'Rechazado';
   return 'Pendiente';
+}
+
+// ── Contract dropdown ─────────────────────────────────────
+
+function ContractDropdown({
+  contracts,
+  selectedId,
+  onSelect,
+}: {
+  contracts: Contract[];
+  selectedId: number | null;
+  onSelect: (id: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = contracts.find((c) => c.id === selectedId);
+
+  if (contracts.length === 0) return null;
+
+  return (
+    <View style={styles.dropdownWrap}>
+      <Text style={styles.dropdownLabel}>CONTRATO</Text>
+      <TouchableOpacity
+        style={styles.dropdownBtn}
+        onPress={() => setOpen(true)}
+        activeOpacity={0.75}
+      >
+        <Text style={styles.dropdownBtnText} numberOfLines={2}>
+          {selected?.contract_name ?? 'Seleccionar contrato'}
+        </Text>
+        <AppIcon name="chevronDown" size={18} color={C.accent} />
+      </TouchableOpacity>
+
+      <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
+        <View style={styles.overlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => setOpen(false)}
+            activeOpacity={1}
+          />
+          <View style={styles.sheetContainer}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Seleccionar contrato</Text>
+              <TouchableOpacity onPress={() => setOpen(false)} hitSlop={12}>
+                <AppIcon name="close" size={22} color={C.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView bounces={false}>
+              {contracts.map((c, idx) => {
+                const active = c.id === selectedId;
+                return (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[
+                      styles.sheetItem,
+                      idx < contracts.length - 1 && styles.sheetItemBorder,
+                    ]}
+                    onPress={() => { onSelect(c.id); setOpen(false); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.sheetItemText, active && styles.sheetItemTextActive]}>
+                      {c.contract_name}
+                    </Text>
+                    {active && <AppIcon name="approved" size={20} color={C.accent} />}
+                  </TouchableOpacity>
+                );
+              })}
+              <View style={{ height: Platform.OS === 'ios' ? 24 : 12 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
 }
 
 // ── Permission card ───────────────────────────────────────
@@ -154,12 +228,11 @@ function CalendarPicker({
 
 interface CreateModalProps {
   visible: boolean;
-  employeeId: number;
-  userId: number;
+  contractId: number;
   onClose: () => void;
 }
 
-function CreatePermissionModal({ visible, employeeId, userId, onClose }: CreateModalProps) {
+function CreatePermissionModal({ visible, contractId, onClose }: CreateModalProps) {
   const queryClient = useQueryClient();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -175,7 +248,7 @@ function CreatePermissionModal({ visible, employeeId, userId, onClose }: CreateM
   const mutation = useMutation({
     mutationFn: createPermission,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions', employeeId] });
+      queryClient.invalidateQueries({ queryKey: ['permissions', contractId] });
       handleClose();
     },
     onError: (err: Error) => Alert.alert('Error', err.message),
@@ -196,7 +269,7 @@ function CreatePermissionModal({ visible, employeeId, userId, onClose }: CreateM
     if (!startDate || !endDate) { Alert.alert('Campos requeridos', 'Selecciona las fechas de inicio y fin.'); return; }
     if (startDate > endDate) { Alert.alert('Fechas inválidas', 'La fecha de inicio no puede ser posterior a la fecha de fin.'); return; }
     if (!typeId) { Alert.alert('Campos requeridos', 'Selecciona un tipo de permiso.'); return; }
-    mutation.mutate({ start_date: startDate, end_date: endDate, employee_id: employeeId, permission_type_id: typeId, responsible_user: userId });
+    mutation.mutate({ start_date: startDate, end_date: endDate, contract_id: contractId, permission_type_id: typeId });
   }
 
   const markedDates: Record<string, { selected: boolean; selectedColor: string }> = {};
@@ -278,11 +351,11 @@ function CreatePermissionModal({ visible, employeeId, userId, onClose }: CreateM
 
 interface EditModalProps {
   item: Permission | null;
-  employeeId: number;
+  contractId: number;
   onClose: () => void;
 }
 
-function EditPermissionModal({ item, employeeId, onClose }: EditModalProps) {
+function EditPermissionModal({ item, contractId, onClose }: EditModalProps) {
   const queryClient = useQueryClient();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -310,7 +383,7 @@ function EditPermissionModal({ item, employeeId, onClose }: EditModalProps) {
     mutationFn: ({ id, data }: { id: number; data: Parameters<typeof updatePermission>[1] }) =>
       updatePermission(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions', employeeId] });
+      queryClient.invalidateQueries({ queryKey: ['permissions', contractId] });
       onClose();
     },
     onError: (err: Error) => Alert.alert('Error', err.message),
@@ -420,14 +493,33 @@ function EditPermissionModal({ item, employeeId, onClose }: EditModalProps) {
 
 // ── Main screen content ───────────────────────────────────
 
-function PermisosContent({ employeeId, userId }: { employeeId: number; userId: number }) {
+function PermisosContent({ employeeId }: { employeeId: number }) {
   const [createVisible, setCreateVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<Permission | null>(null);
+  const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
+
+  // Fetch contracts for this employee
+  const { data: contractsData, isLoading: loadingContracts } = useQuery({
+    queryKey: ['contracts', employeeId],
+    queryFn: () => getContracts({ employeeId }),
+    enabled: employeeId > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const contracts = contractsData?.items ?? [];
+
+  // Auto-select first active contract (or first available)
+  useEffect(() => {
+    if (contracts.length > 0 && selectedContractId === null) {
+      const active = contracts.find((c) => c.contract_status === 'activo') ?? contracts[0];
+      setSelectedContractId(active.id);
+    }
+  }, [contracts, selectedContractId]);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ['permissions', employeeId],
-    queryFn: () => getEmployeePermissions(employeeId),
-    enabled: employeeId > 0,
+    queryKey: ['permissions', selectedContractId],
+    queryFn: () => getContractPermissions(selectedContractId!),
+    enabled: selectedContractId !== null,
   });
 
   return (
@@ -437,65 +529,95 @@ function PermisosContent({ employeeId, userId }: { employeeId: number; userId: n
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Permisos</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setCreateVisible(true)}>
-          <AppIcon name="add" size={22} color={C.bg} />
-        </TouchableOpacity>
+        {selectedContractId !== null && (
+          <TouchableOpacity style={styles.addBtn} onPress={() => setCreateVisible(true)}>
+            <AppIcon name="add" size={22} color={C.bg} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {isLoading && (
-        <View style={styles.centered}>
-          <ActivityIndicator color={C.accent} size="large" />
-        </View>
-      )}
-
-      {isError && (
-        <View style={styles.centered}>
-          <AppIcon name="wifiOff" size={40} color={C.muted} />
-          <Text style={styles.emptyText}>No se pudieron cargar los permisos</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
-            <Text style={styles.retryText}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {!isLoading && !isError && (
-        <FlatList
-          data={data?.items ?? []}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => (
-            <PermissionCard item={item} onEdit={() => setEditingItem(item)} />
-          )}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={refetch}
-              tintColor={C.accent}
-              colors={[C.accent]}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.centered}>
-              <AppIcon name="leaveAvailable" size={48} color={C.muted} />
-              <Text style={styles.emptyText}>No tienes permisos registrados</Text>
-              <Text style={styles.emptySubtext}>Pulsa + para solicitar uno</Text>
-            </View>
-          }
+      {/* Contract dropdown */}
+      {loadingContracts ? (
+        <ActivityIndicator color={C.accent} style={{ marginVertical: 12 }} />
+      ) : (
+        <ContractDropdown
+          contracts={contracts}
+          selectedId={selectedContractId}
+          onSelect={setSelectedContractId}
         />
       )}
 
-      <CreatePermissionModal
-        visible={createVisible}
-        employeeId={employeeId}
-        userId={userId}
-        onClose={() => setCreateVisible(false)}
-      />
-      <EditPermissionModal
-        item={editingItem}
-        employeeId={employeeId}
-        onClose={() => setEditingItem(null)}
-      />
+      {/* No contracts */}
+      {!loadingContracts && contracts.length === 0 && (
+        <View style={styles.centered}>
+          <AppIcon name="contract" size={40} color={C.muted} />
+          <Text style={styles.emptyText}>Sin contratos disponibles</Text>
+          <Text style={styles.emptySubtext}>Necesitas un contrato activo para solicitar permisos</Text>
+        </View>
+      )}
+
+      {/* Permission list */}
+      {selectedContractId !== null && (
+        <>
+          {isLoading && (
+            <View style={styles.centered}>
+              <ActivityIndicator color={C.accent} size="large" />
+            </View>
+          )}
+
+          {isError && (
+            <View style={styles.centered}>
+              <AppIcon name="wifiOff" size={40} color={C.muted} />
+              <Text style={styles.emptyText}>No se pudieron cargar los permisos</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
+                <Text style={styles.retryText}>Reintentar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {!isLoading && !isError && (
+            <FlatList
+              data={data?.items ?? []}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => (
+                <PermissionCard item={item} onEdit={() => setEditingItem(item)} />
+              )}
+              contentContainerStyle={styles.list}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isFetching && !isLoading}
+                  onRefresh={refetch}
+                  tintColor={C.accent}
+                  colors={[C.accent]}
+                />
+              }
+              ListEmptyComponent={
+                <View style={styles.centered}>
+                  <AppIcon name="leaveAvailable" size={48} color={C.muted} />
+                  <Text style={styles.emptyText}>No tienes permisos registrados</Text>
+                  <Text style={styles.emptySubtext}>Pulsa + para solicitar uno</Text>
+                </View>
+              }
+            />
+          )}
+        </>
+      )}
+
+      {selectedContractId !== null && (
+        <>
+          <CreatePermissionModal
+            visible={createVisible}
+            contractId={selectedContractId}
+            onClose={() => setCreateVisible(false)}
+          />
+          <EditPermissionModal
+            item={editingItem}
+            contractId={selectedContractId}
+            onClose={() => setEditingItem(null)}
+          />
+        </>
+      )}
     </View>
   );
 }
@@ -514,7 +636,7 @@ export default function PermisosScreen() {
       </View>
     );
   }
-  return <PermisosContent employeeId={user.id_employee} userId={user.id} />;
+  return <PermisosContent employeeId={user.id_employee} />;
 }
 
 // ── Styles ────────────────────────────────────────────────
@@ -532,7 +654,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.6, fontFamily: F?.heavy,
@@ -541,6 +663,41 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center',
   },
+
+  // Contract dropdown
+  dropdownWrap: { paddingHorizontal: 20, paddingBottom: 16 },
+  dropdownLabel: {
+    fontSize: 10, fontWeight: '700', color: C.muted,
+    letterSpacing: 2, fontFamily: F?.demi, marginBottom: 8,
+  },
+  dropdownBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.accentBorder,
+    borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16,
+  },
+  dropdownBtnText: {
+    flex: 1, fontSize: 14, color: C.accent, fontFamily: F?.demi, lineHeight: 20,
+  },
+
+  // Contract sheet
+  sheetContainer: {
+    backgroundColor: C.modalBg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingTop: 20,
+  },
+  sheetHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingBottom: 16,
+    borderBottomWidth: 1, borderBottomColor: C.cardBorder,
+  },
+  sheetTitle: { fontSize: 16, fontWeight: '700', color: C.text, fontFamily: F?.demi },
+  sheetItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 16, paddingHorizontal: 20,
+  },
+  sheetItemBorder: { borderBottomWidth: 1, borderBottomColor: C.cardBorder },
+  sheetItemText: { flex: 1, fontSize: 15, color: C.muted, fontFamily: F?.regular, lineHeight: 22 },
+  sheetItemTextActive: { color: C.text, fontFamily: F?.demi },
+
   list: { paddingHorizontal: 16, paddingBottom: 40, gap: 12, flexGrow: 1 },
   emptyText: { fontSize: 16, color: C.muted, textAlign: 'center', fontFamily: F?.demi },
   emptySubtext: { fontSize: 13, color: C.muted, textAlign: 'center', fontFamily: F?.regular },

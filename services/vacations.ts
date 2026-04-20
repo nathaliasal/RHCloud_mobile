@@ -29,7 +29,7 @@ export interface CreateVacationPayload {
   start_date: string;
   end_date: string;
   reason: string;
-  employee_id: number;
+  contract_id: number;
 }
 
 export interface UpdateVacationPayload {
@@ -40,13 +40,13 @@ export interface UpdateVacationPayload {
 
 // ── API calls ─────────────────────────────────────────────
 
-export async function getEmployeeVacations(
-  employeeId: number,
+export async function getContractVacations(
+  contractId: number,
   page = 1,
   pageSize = 20,
 ): Promise<VacationsResponse> {
   const response = await http.get<VacationsResponse>(
-    `${ENDPOINTS.vacations.byEmployee}/${employeeId}`,
+    `${ENDPOINTS.vacations.byContract}/${contractId}`,
     { params: { page, page_size: pageSize } },
   );
   return response.data;

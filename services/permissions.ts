@@ -45,9 +45,9 @@ export interface PermissionsResponse {
 export interface CreatePermissionPayload {
   start_date: string;
   end_date: string;
-  employee_id: number;
+  url?: string;
+  contract_id: number;
   permission_type_id: number;
-  responsible_user: number;
 }
 
 export interface UpdatePermissionPayload {
@@ -59,13 +59,13 @@ export interface UpdatePermissionPayload {
 
 // ── API calls ─────────────────────────────────────────────
 
-export async function getEmployeePermissions(
-  employeeId: number,
+export async function getContractPermissions(
+  contractId: number,
   page = 1,
   pageSize = 20,
 ): Promise<PermissionsResponse> {
   const response = await http.get<PermissionsResponse>(
-    `${ENDPOINTS.permissions.byEmployee}/${employeeId}`,
+    `${ENDPOINTS.permissions.byContract}/${contractId}`,
     { params: { page, page_size: pageSize } },
   );
   return response.data;

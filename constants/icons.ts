@@ -45,6 +45,7 @@ export const Icons = {
   // ── Acciones adicionales
   add:                'add',
   chevronRight:       'chevron-forward',
+  chevronDown:        'chevron-down',
   filter:             'options-outline',
 
   // ── Datos / campos
