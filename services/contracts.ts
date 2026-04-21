@@ -71,3 +71,10 @@ export async function getContractSchedules(contractId: number): Promise<Schedule
   );
   return response.data;
 }
+
+export async function getContractLatestDocUrl(contractId: number): Promise<string> {
+  const response = await http.get<string>(
+    `${ENDPOINTS.contracts.base}/${contractId}/document/latest-url`,
+  );
+  return response.data;
+}

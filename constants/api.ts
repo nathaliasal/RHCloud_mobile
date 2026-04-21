@@ -42,6 +42,7 @@ export const ENDPOINTS = {
   contracts: {
     filtered: `${API_BASE_URL}/api/v1/contracts/filtered`,
     schedules: `${API_BASE_URL}/api/v1/schedules/contract`,
+    base:      `${API_BASE_URL}/api/v1/contracts`,
   },
   notifications: {
     mine: `${API_BASE_URL}/api/v1/notifications/me`,

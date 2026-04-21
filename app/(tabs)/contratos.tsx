@@ -3,7 +3,9 @@ import { AppIcon } from '@/components/ui/app-icon';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Linking,
   Modal,
   Platform,
   RefreshControl,
@@ -19,6 +21,7 @@ import {
   Contract,
   ContractStatus,
   getContracts,
+  getContractLatestDocUrl,
   getContractSchedules,
   Schedule,
 } from '@/services/contracts';
@@ -213,6 +216,20 @@ interface ContractCardProps {
 
 function ContractCard({ item, onViewSchedule }: ContractCardProps) {
   const color = statusColor(item.contract_status);
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      const url = await getContractLatestDocUrl(item.id);
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Sin documento', 'No se encontró un documento generado para este contrato.');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -251,11 +268,25 @@ function ContractCard({ item, onViewSchedule }: ContractCardProps) {
         <Text style={styles.cardMuted}>Base: {formatSalary(item.salary_base)}</Text>
       </View>
 
-      <TouchableOpacity style={styles.scheduleBtn} onPress={onViewSchedule}>
-        <AppIcon name="clockTime" size={15} color={C.accent} />
-        <Text style={styles.scheduleBtnText}>Ver horarios</Text>
-        <AppIcon name="chevronRight" size={16} color={C.accent} />
-      </TouchableOpacity>
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          style={[styles.downloadBtn, downloading && { opacity: 0.6 }]}
+          onPress={handleDownload}
+          disabled={downloading}
+        >
+          {downloading
+            ? <ActivityIndicator size="small" color={C.accent} />
+            : <AppIcon name="download" size={15} color={C.accent} />
+          }
+          {!downloading && <Text style={styles.downloadBtnText}>Descargar</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.scheduleBtn} onPress={onViewSchedule}>
+          <AppIcon name="clockTime" size={15} color={C.accent} />
+          <Text style={styles.scheduleBtnText}>Ver horarios</Text>
+          <AppIcon name="chevronRight" size={16} color={C.accent} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -571,9 +602,19 @@ const styles = StyleSheet.create({
     paddingVertical: 3, paddingHorizontal: 10,
   },
   statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, fontFamily: F?.demi },
+  cardActions: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginTop: 4,
+  },
+  downloadBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 6, paddingHorizontal: 12,
+    borderRadius: 20, borderWidth: 1, borderColor: C.accentBorder,
+    backgroundColor: C.accentGlow, minWidth: 44, justifyContent: 'center',
+  },
+  downloadBtnText: { fontSize: 13, color: C.accent, fontFamily: F?.demi },
   scheduleBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginTop: 4, alignSelf: 'flex-end',
     paddingVertical: 6, paddingHorizontal: 12,
     borderRadius: 20, borderWidth: 1, borderColor: C.accentBorder,
     backgroundColor: C.accentGlow,

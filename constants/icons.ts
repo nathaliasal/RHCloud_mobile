@@ -46,6 +46,7 @@ export const Icons = {
   add:                'add',
   chevronRight:       'chevron-forward',
   chevronDown:        'chevron-down',
+  download:           'download-outline',
   filter:             'options-outline',
 
   // ── Datos / campos
