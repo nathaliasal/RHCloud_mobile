@@ -222,9 +222,20 @@ function ContractCard({ item, onViewSchedule }: ContractCardProps) {
     setDownloading(true);
     try {
       const url = await getContractLatestDocUrl(item.id);
+      console.log('[Download] URL recibida:', url);
       await Linking.openURL(url);
-    } catch {
-      Alert.alert('Sin documento', 'No se encontró un documento generado para este contrato.');
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail ?? err?.message ?? 'Error desconocido';
+      console.error('[Download] Error:', status, detail);
+
+      if (status === 404) {
+        Alert.alert('Sin documento', 'Este contrato aún no tiene un documento generado. Contacta a tu administrador.');
+      } else if (status === 403) {
+        Alert.alert('Sin acceso', 'No tienes permiso para descargar este documento.');
+      } else {
+        Alert.alert('Error', `No se pudo descargar el documento (${status ?? 'sin conexión'}).`);
+      }
     } finally {
       setDownloading(false);
     }

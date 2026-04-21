@@ -72,9 +72,18 @@ export async function getContractSchedules(contractId: number): Promise<Schedule
   return response.data;
 }
 
+export interface ContractDocUrlResponse {
+  document_id: number;
+  contract_id: number;
+  category: string;
+  filename: string;
+  url: string;
+  expires_in: number;
+}
+
 export async function getContractLatestDocUrl(contractId: number): Promise<string> {
-  const response = await http.get<string>(
+  const response = await http.get<ContractDocUrlResponse>(
     `${ENDPOINTS.contracts.base}/${contractId}/document/latest-url`,
   );
-  return response.data;
+  return response.data.url;
 }
