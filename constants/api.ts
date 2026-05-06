@@ -44,6 +44,9 @@ export const ENDPOINTS = {
     schedules: `${API_BASE_URL}/api/v1/schedules/contract`,
     base:      `${API_BASE_URL}/api/v1/contracts`,
   },
+  bot: {
+    query: `${API_BASE_URL}/api/v1/bot/query`,
+  },
   notifications: {
     mine: `${API_BASE_URL}/api/v1/notifications/me`,
     unreadCount: `${API_BASE_URL}/api/v1/notifications/me/unread-count`,

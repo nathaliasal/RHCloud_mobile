@@ -46,8 +46,14 @@ export const Icons = {
   add:                'add',
   chevronRight:       'chevron-forward',
   chevronDown:        'chevron-down',
+  chevronUp:          'chevron-up',
   download:           'download-outline',
   filter:             'options-outline',
+  send:               'send',
+
+  // ── Chatbot
+  chatBot:            'chatbubble-ellipses',
+  sparkles:           'sparkles-outline',
 
   // ── Datos / campos
   calendarToday:      'today-outline',
