@@ -164,17 +164,24 @@ export function ChatBot() {
         { id: `b-${Date.now()}`, role: 'bot', terms: data.items },
       ]);
     } catch (err: any) {
-      const status = err?.response?.status;
-      let errorText = 'Ocurrió un error inesperado. Inténtalo de nuevo.';
+      // El interceptor de http convierte errores a ApiError:
+      // err.status  = código HTTP   (no err.response.status)
+      // err.message = mensaje ya extraído del servidor
+      const status = err?.status;
+      console.error('[ChatBot] status:', status, '| message:', err?.message);
+
+      let errorText: string;
 
       if (status === 503) {
         errorText = 'El asistente está temporalmente desactivado. Inténtalo más tarde.';
       } else if (status === 422) {
-        errorText = 'No pude identificar la empresa. Por favor menciona el nombre o NIT.';
+        errorText = err?.message ?? 'No pude identificar la empresa. Menciona el nombre o NIT.';
       } else if (status === 404) {
-        errorText = err?.response?.data?.detail ?? 'No se encontraron términos para esa empresa.';
+        errorText = err?.message ?? 'No se encontraron términos para esa empresa.';
       } else if (status === 502) {
         errorText = 'Error de comunicación con el proveedor de IA.';
+      } else {
+        errorText = err?.message ?? 'Ocurrió un error inesperado. Inténtalo de nuevo.';
       }
 
       setMessages((prev) => [

@@ -22,7 +22,11 @@ export interface BotResponse {
 
 // ── API call ──────────────────────────────────────────────
 
-export async function queryBot(message: string): Promise<BotResponse> {
-  const response = await http.post<BotResponse>(ENDPOINTS.bot.query, { message });
+export async function queryBot(message: string, page = 1, pageSize = 10): Promise<BotResponse> {
+  const response = await http.post<BotResponse>(
+    ENDPOINTS.bot.query,
+    { message },
+    { params: { page, page_size: pageSize } },
+  );
   return response.data;
 }

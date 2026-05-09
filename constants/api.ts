@@ -45,7 +45,8 @@ export const ENDPOINTS = {
     base:      `${API_BASE_URL}/api/v1/contracts`,
   },
   bot: {
-    query: `${API_BASE_URL}/api/v1/bot/query`,
+    // El bot corre en api.stalch.com (distinto al servidor dev)
+    query: 'https://api.stalch.com/api/v1/bot/query',
   },
   notifications: {
     mine: `${API_BASE_URL}/api/v1/notifications/me`,
