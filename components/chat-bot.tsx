@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePathname } from 'expo-router';
 
 import { AppIcon } from '@/components/ui/app-icon';
 import { queryBot, BotTerm } from '@/services/bot';
@@ -138,6 +139,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
 export function ChatBot() {
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState('');
@@ -195,17 +197,20 @@ export function ChatBot() {
   }
 
   const fabBottom = TAB_BAR_HEIGHT + insets.bottom + 16;
+  const isProfile = pathname === '/profile';
 
   return (
     <>
-      {/* ── Botón flotante ── */}
-      <TouchableOpacity
-        style={[styles.fab, { bottom: fabBottom }]}
-        onPress={() => setOpen(true)}
-        activeOpacity={0.85}
-      >
-        <AppIcon name="chatBot" size={24} color={C.bg} />
-      </TouchableOpacity>
+      {/* ── Botón flotante — oculto en perfil ── */}
+      {!isProfile && (
+        <TouchableOpacity
+          style={[styles.fab, { bottom: fabBottom }]}
+          onPress={() => setOpen(true)}
+          activeOpacity={0.85}
+        >
+          <AppIcon name="chatBot" size={24} color={C.bg} />
+        </TouchableOpacity>
+      )}
 
       {/* ── Modal de chat ── */}
       <Modal

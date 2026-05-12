@@ -176,7 +176,6 @@ function NotifItem({
         <View style={itemStyles.titleRow}>
           <Text
             style={[itemStyles.title, { color: notif.is_read ? C.muted : C.text }]}
-            numberOfLines={1}
           >
             {notif.title}
           </Text>
@@ -184,7 +183,7 @@ function NotifItem({
             <View style={[itemStyles.unreadDot, { backgroundColor: meta.color }]} />
           )}
         </View>
-        <Text style={itemStyles.bodyText} numberOfLines={2}>
+        <Text style={itemStyles.bodyText}>
           {notif.message}
         </Text>
         <View style={itemStyles.footerRow}>
