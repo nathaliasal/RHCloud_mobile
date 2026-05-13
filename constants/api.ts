@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = 'https://dev.stalch.com';
+const DEFAULT_API_BASE_URL = 'https://api.stalch.com';
 
 function normalizeBaseUrl(value?: string): string {
   return (value?.trim() || DEFAULT_API_BASE_URL).replace(/\/+$/, '');
@@ -42,7 +42,7 @@ export const ENDPOINTS = {
   contracts: {
     filtered: `${API_BASE_URL}/api/v1/contracts/filtered`,
     schedules: `${API_BASE_URL}/api/v1/schedules/contract`,
-    base:      `${API_BASE_URL}/api/v1/contracts`,
+    base: `${API_BASE_URL}/api/v1/contracts`,
   },
   bot: {
     // El bot corre en api.stalch.com (distinto al servidor dev)
